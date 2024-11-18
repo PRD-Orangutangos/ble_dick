@@ -50,8 +50,6 @@ class BLEDeviceSensor(SensorEntity):
         self._attr_unique_id = "ble_device_sensor"
         self._attr_name = "BLE Device Info"
         self._state = "No device found"
-        self._name = ""
-        self._addr = ""
         self._connected = False  # Флаг подключения
         self.target_device_name = "QHM-12"  # Имя искомого устройства
 
@@ -68,35 +66,26 @@ class BLEDeviceSensor(SensorEntity):
         """Периодическая задача для обновления состояния."""
         while True:
             await asyncio.sleep(2)  # Обновление состояния каждые 10 секунд
-            try:
-                devices = await BleakScanner.discover(timeout=2.0)  # Сканируем устройства
-                for device in devices:
-                    if device.name and self.target_device_name.lower() in device.name.lower():
-                        global device_info
-                        self._name = device.name
-                        self._addr = device.address
-                        self.state = f"Device found: {device.name}"
-                        self.async_write_ha_state()
-                    else:
-                        self._state = "No device found"
-            except Exception as e:
-                pass
+            device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
+            if device:
+                self._state = f"Device found: {device.name}"  # Устройство найдено
+                self._connected = False  # Устройство ещё не подключено
+                self.async_write_ha_state()  # Обновление состояния сенсора
 
-            # device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
-            # if device:
-            #     self._state = f"Device found: {device.name}"  # Устройство найдено
-            #     self._connected = False  # Устройство ещё не подключено
-            #     self.async_write_ha_state()  # Обновление состояния сенсора
+                # Формируем информацию о найденном устройстве
+                global device_info
+                device_info = {
+                    "name": device.name,
+                    "address": device.address,
+                    "connected": self._connected,
+                }
 
-            #     # Формируем информацию о найденном устройстве
-               
-
-            #     # Обновляем состояние сенсора
-            #     self.async_write_ha_state()
-            # else:
-            #     self._state = "No device found"
-            #     self._connected = False  # Устройство не подключено
-            #     self.async_write_ha_state()  # Обновление состояния сенсора
+                # Обновляем состояние сенсора
+                self.async_write_ha_state()
+            else:
+                self._state = "No device found"
+                self._connected = False  # Устройство не подключено
+                self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
     def state(self):
@@ -110,3 +99,15 @@ class BLEDeviceSensor(SensorEntity):
             return "mdi:bluetooth-connected"  # Иконка для подключенного устройства
         return "mdi:bluetooth"  # Иконка для устройства, к которому не подключены
 
+    @property
+    def device_state_attributes(self):
+        
+            # output = device_info["name"] + "," + device_info["address"] + "," + device_info["connected"]
+            # Формируем атрибуты для устройства
+            # attributes = {
+            #     "device_name": device_info["name"],
+            #     "device_address": device_info["address"],
+            #     "connected": device_info["connected"],  # Информация о подключении
+            # }
+            # _LOGGER.info(f"Информация о устройстве: {attributes}")
+        return {"device_name": device_info["name"], "connection_status": device_info["connected"]}
