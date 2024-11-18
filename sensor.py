@@ -19,10 +19,12 @@ async def discover_devices():
     global devs
     _LOGGER.info("Поиск BLE-устройств...")  # Логируем начало сканирования
     try:
-        devices = await BleakScanner.discover()
+        # Запуск сканирования устройств с ограничением времени (например, 5 секунд)
+        devices = await BleakScanner.discover(timeout=5.0)
         _LOGGER.info(f"Найдено {len(devices)} устройств.")  # Логируем количество найденных устройств
         devs.clear()
         if devices:
+            # Сохраняем имена устройств (или их адреса, если имя отсутствует)
             devs.extend([device.name or f"Unknown ({device.address})" for device in devices])
         else:
             devs.append("No devices found")
