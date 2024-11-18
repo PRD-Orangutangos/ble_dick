@@ -22,5 +22,5 @@ class BleDickConfigFlow(config_entries.ConfigFlow):
                 ),
             )
 
-        # Проводим необходимые проверки (например, подключение устройства)
+        # После ввода данных создаем запись конфигурации
         return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
