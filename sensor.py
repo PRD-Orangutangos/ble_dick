@@ -17,13 +17,13 @@ async def discover_device_by_name(target_name):
     """Функция для поиска BLE устройства с нужным именем."""
     global device_info
     try:
-        devices = await BleakScanner.discover(timeout=5.0)
+        devices = await BleakScanner.discover(timeout=2.0)
         for device in devices:
             if device.name and target_name.lower() in device.name.lower():
                 # Сразу возвращаем устройство без получения информации о сервисах
                 return device
         # Если устройство не найдено
-        device_info = None
+  
     except Exception as e:
         _LOGGER.error(f"Ошибка при сканировании устройства: {e}")
 
@@ -65,7 +65,7 @@ class BLEDeviceSensor(SensorEntity):
     async def _periodic_update(self):
         """Периодическая задача для обновления состояния."""
         while True:
-            await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
+            await asyncio.sleep(2)  # Обновление состояния каждые 10 секунд
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             if device:
                 self._state = f"Device found: {device.name}"  # Устройство найдено
