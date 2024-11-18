@@ -80,9 +80,16 @@ class BLEDeviceSensor(SensorEntity):
             await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             if device_info:
-                self._state = f"Name: {device_info['name']}, Address: {device_info['address']}, Services: {', '.join(device_info['services'])}"
+                self._state = f"Device found: {device_info['name']}"  # Краткое состояние
+                # Устанавливаем атрибуты для длинной информации
+                self._attr_extra_state_attributes = {
+                    "address": device_info['address'],
+                    "services": device_info['services'],
+                }
             else:
                 self._state = "No device found"
+                self._attr_extra_state_attributes = {}
+
             self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
