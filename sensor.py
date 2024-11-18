@@ -1,5 +1,5 @@
 import asyncio
-from bleak import BleakScanner, BleakClient
+from bleak import BleakScanner
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -20,7 +20,7 @@ async def discover_device_by_name(target_name):
         devices = await BleakScanner.discover(timeout=5.0)
         for device in devices:
             if device.name and target_name.lower() in device.name.lower():
-                # Сразу возвращаем устройство, не получая информацию о сервисах
+                # Сразу возвращаем устройство без получения информации о сервисах
                 return device
         # Если устройство не найдено
         device_info = None
@@ -28,23 +28,6 @@ async def discover_device_by_name(target_name):
         _LOGGER.error(f"Ошибка при сканировании устройства: {e}")
 
     return None
-
-async def get_device_services(device):
-    """Получение сервисов подключённого устройства."""
-    try:
-        # Подключаемся к устройству через BleakClient
-        async with BleakClient(device.address) as client:
-            # Проверка, что устройство подключено
-            if not client.is_connected:
-                await client.connect()
-            _LOGGER.info(f"Подключено к устройству {device.name} ({device.address})")
-
-            # Убираем вывод сервисов
-            _LOGGER.info(f"Устройство {device.name} подключено, но сервисы не отображаются.")
-            return []  # Возвращаем пустой список, не выводя сервисы
-    except Exception as e:
-        _LOGGER.error(f"Не удалось подключиться к устройству {device.name}: {e}")
-        return []
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -89,22 +72,18 @@ class BLEDeviceSensor(SensorEntity):
                 self._connected = False  # Устройство ещё не подключено
                 self.async_write_ha_state()  # Обновление состояния сенсора
 
-                # Теперь пытаемся подключиться к устройству и получить информацию о сервисах
-                services = await get_device_services(device)
-                if services:
-                    self._state = f"Device connected: {device.name}"  # Устройство подключено
-                    device_info = {
-                        "name": device.name,
-                        "address": device.address,
-                    }
-                else:
-                    self._state = "No services found"
-                    self._connected = False  # Устройство не подключено
-                self.async_write_ha_state()  # Обновление состояния сенсора
+                # Формируем информацию о найденном устройстве
+                device_info = {
+                    "name": device.name,
+                    "address": device.address,
+                }
+
+                # Обновляем состояние сенсора
+                self.async_write_ha_state()
             else:
                 self._state = "No device found"
                 self._connected = False  # Устройство не подключено
-            self.async_write_ha_state()  # Обновление состояния сенсора
+                self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
     def state(self):
@@ -126,7 +105,6 @@ class BLEDeviceSensor(SensorEntity):
             attributes = {
                 "address": device_info["address"],
                 "connected": self._connected,  # Информация о подключении
-                "device_name": device_info["name"],  # Имя устройства
             }
 
             _LOGGER.info(f"Информация о устройстве: {attributes}")
