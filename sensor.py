@@ -20,6 +20,7 @@ async def discover_device_by_name(target_name):
         devices = await BleakScanner.discover(timeout=5.0)
         for device in devices:
             if device.name and target_name.lower() in device.name.lower():
+                # Подключаемся к устройству, чтобы получить его сервисы
                 device_info = {
                     "name": device.name,
                     "address": device.address,
@@ -36,8 +37,11 @@ async def discover_device_by_name(target_name):
 async def get_device_services(device):
     """Получение сервисов подключённого устройства."""
     try:
+        # Подключаемся к устройству через BleakClient
         async with BleakClient(device.address) as client:
-            services = await client.get_services()
+            if not client.is_connected:
+                await client.connect()  # Подключаемся, если не подключены
+            services = await client.get_services()  # Получаем сервисы после подключения
             return [str(service) for service in services]
     except Exception as e:
         _LOGGER.error(f"Не удалось получить сервисы для устройства {device.name}: {e}")
