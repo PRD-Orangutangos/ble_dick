@@ -50,6 +50,8 @@ class BLEDeviceSensor(SensorEntity):
         self._attr_unique_id = "ble_device_sensor"
         self._attr_name = "BLE Device Info"
         self._state = "No device found"
+        self._name = ""
+        self._addr = ""
         self._connected = False  # Флаг подключения
         self.target_device_name = "QHM-12"  # Имя искомого устройства
 
@@ -71,15 +73,14 @@ class BLEDeviceSensor(SensorEntity):
                 for device in devices:
                     if device.name and self.target_device_name.lower() in device.name.lower():
                         global device_info
-                        device_info = {
-                            "name": device.name,
-                            "address": device.address,
-                            "connected": self._connected,
-                        }
+                        self._name = device.name
+                        self._addr = device.address
+                        self.state = f"Device found: {device.name}"
                         self.async_write_ha_state()
-                print(f"Устройство с именем '{self.target_device_name}' не найдено.")
+                    else:
+                        self._state = "No device found"
             except Exception as e:
-                print(f"Ошибка при сканировании устройства: {e}")
+                pass
 
             # device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             # if device:
@@ -99,9 +100,8 @@ class BLEDeviceSensor(SensorEntity):
 
     @property
     def state(self):
-        output = device_info["name"] + "," + device_info["address"] + "," + device_info["connected"]
         """Возвращает текущее состояние сенсора (информация о BLE устройстве)."""
-        return output
+        return self._state
 
     @property
     def icon(self):
