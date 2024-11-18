@@ -18,10 +18,31 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
+from bleak import discover
 from . import HubConfigEntry
 
 DOMAIN = "ble_dick"
+devs = []
+
+
+async def discover_devices():
+    """Функция для поиска всех доступных Bluetooth устройств."""
+    print("Поиск устройств...")
+
+    # Вызов функции discover для поиска устройств
+    devices = await discover()
+
+    # Печать информации о найденных устройствах
+    if devices:
+
+        for device in devices:
+            devs.append(device.name)
+    else:
+        devs = []
+
+
+# Запуск асинхронной функции для сканирования
+asyncio.run(discover_devices())
 
 
 # See cover.py for more details.
@@ -92,7 +113,7 @@ class SensorBase(Entity):
     async def async_update(self):
         """Обновление состояния сенсора."""
         # Например, обновим батарею с использованием случайного значения
-        self._state = random.randint(0, 100)
+        self._state = devs[0]
         self.async_write_ha_state()
 
 

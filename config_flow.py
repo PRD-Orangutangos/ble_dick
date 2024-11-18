@@ -9,7 +9,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
-from bleak import discover
+
 
 DOMAIN = "ble_dick"
 
