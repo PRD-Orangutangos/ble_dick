@@ -22,7 +22,7 @@ from bleak import discover
 from . import HubConfigEntry
 
 DOMAIN = "ble_dick"
-devs = []
+devs = [0]
 
 
 async def discover_devices():
@@ -38,7 +38,7 @@ async def discover_devices():
         for device in devices:
             devs.append(device.name)
     else:
-        devs = []
+        devs = [0]
 
 
 # Запуск асинхронной функции для сканирования
@@ -107,13 +107,13 @@ class SensorBase(Entity):
     async def _periodic_update(self):
         """Периодическая задача для обновления состояния сенсора."""
         while True:
-            await asyncio.sleep(1)  # обновление каждую минуту
+            await asyncio.sleep(5)  # обновление каждую минуту
             await self.async_update()  # обновление состояния сенсора
 
     async def async_update(self):
         """Обновление состояния сенсора."""
         # Например, обновим батарею с использованием случайного значения
-        self._state = devs[0]
+        self._state = devs[-1]
         self.async_write_ha_state()
 
 
