@@ -3,7 +3,11 @@ from bleak import BleakScanner
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+import logging
 from .const import DOMAIN
+
+# Настройка логирования
+_LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = 60  # Интервал сканирования в секундах
 
@@ -30,8 +34,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                                 {"mac": device.address, "name": device.name},
                             )
             except Exception as e:
-                # Логируем ошибку при сканировании
-                print.error(f"Error during BLE scanning: {e}")
+                _LOGGER.error(f"Error during BLE scanning: {e}")
 
             await asyncio.sleep(SCAN_INTERVAL)
 
@@ -54,4 +57,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 def is_target_device(device):
     """Проверить, является ли устройство целевым."""
-    return "ble_dick" in device.name  # Замените на точное условие для вашего устройства
+    return (
+        "MyBLEDevice" in device.name
+    )  # Замените на точное условие для вашего устройства

@@ -1,7 +1,7 @@
 from homeassistant.helpers.entity import Entity
 from .const import DOMAIN
-
 from homeassistant.components.image import ImageEntity
+from bleak import BleakClient
 
 
 class YourIntegrationImageEntity(ImageEntity):
@@ -42,6 +42,14 @@ class MyBLEDeviceSensor(Entity):
         """Fetch new state data from the BLE device."""
         from bleak import BleakClient
 
-        async with BleakClient(self._mac_address) as client:
-            data = await client.read_gatt_char("UUID_CHARACTERISTIC")  # Замените UUID
-            self._state = int.from_bytes(data, "little")  # Пример обработки данных
+        # Замените на правильный UUID
+        characteristic_uuid = "00002a19-0000-1000-8000-00805f9b34fb"  # Пример UUID
+
+        try:
+            async with BleakClient(self._mac_address) as client:
+                data = await client.read_gatt_char(characteristic_uuid)
+                self._state = int.from_bytes(data, "little")  # Пример обработки данных
+        except Exception as e:
+            # Логирование ошибки в случае неудачи
+            self._state = None
+            print(f"Failed to update sensor state: {e}")
