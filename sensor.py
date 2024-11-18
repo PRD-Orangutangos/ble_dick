@@ -97,6 +97,8 @@ class BLEDeviceSensor(SensorEntity):
             if device_info:
                 self._state = f"Device found: {device_info['name']}"
                 self._connected = True  # Устройство подключено
+                # Выводим информацию о сервисах в лог
+                _LOGGER.info(f"Сервисы устройства {device_info['name']}: {device_info['services']}")
             else:
                 self._state = "No device found"
                 self._connected = False  # Устройство не подключено
@@ -118,9 +120,12 @@ class BLEDeviceSensor(SensorEntity):
     def device_state_attributes(self):
         """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
         if device_info:
+            # Проверка наличия сервисов и их вывод
+            services = ", ".join(device_info["services"]) if device_info["services"] else "No services"
+            _LOGGER.info(f"Сервисы устройства: {services}")
             return {
                 "address": device_info["address"],
-                "services": ", ".join(device_info["services"]) if device_info["services"] else "No services",  # Список сервисов
+                "services": services,  # Список сервисов
                 "connected": self._connected,  # Информация о подключении
             }
         return {}
