@@ -42,7 +42,6 @@ async def discover_devices():
 
 
 # Запуск асинхронной функции для сканирования
-asyncio.run(discover_devices())
 
 
 # See cover.py for more details.
@@ -108,6 +107,7 @@ class SensorBase(Entity):
         """Периодическая задача для обновления состояния сенсора."""
         while True:
             await asyncio.sleep(5)  # обновление каждую минуту
+            await discover_devices()
             await self.async_update()  # обновление состояния сенсора
 
     async def async_update(self):
