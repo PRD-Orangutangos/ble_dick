@@ -1,4 +1,3 @@
-import random
 import asyncio
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import PERCENTAGE
@@ -17,11 +16,14 @@ async def discover_devices():
     global devs
     print("Поиск BLE-устройств...")
     devices = await discover()  # BLE-сканирование
-    devs.clear()  # Очищаем список перед добавлением новых устройств
+
+    # Очищаем список и обновляем с новыми устройствами
+    devs.clear()
     if devices:
-        devs.extend([device.name for device in devices if device.name])
+        devs.extend([device.name for device in devices if device.name])  # Только именованные устройства
     else:
         devs.append("No devices found")
+    print("Найденные устройства:", devs)
 
 
 async def async_setup_entry(
@@ -36,7 +38,7 @@ async def async_setup_entry(
     # Добавление сенсора BLE-устройств
     for roller in hub.rollers:
         new_devices.append(BLEDeviceSensor(roller))
-    
+
     if new_devices:
         async_add_entities(new_devices)
 
@@ -76,7 +78,7 @@ class SensorBase(Entity):
         while True:
             await asyncio.sleep(10)  # Сканируем BLE каждые 10 секунд
             await discover_devices()
-            self.async_write_ha_state()
+            self.async_write_ha_state()  # Обновление состояния после сканирования
 
 
 class BLEDeviceSensor(SensorBase):
@@ -96,4 +98,5 @@ class BLEDeviceSensor(SensorBase):
     def state(self):
         """Возвращает текущее состояние сенсора."""
         global devs
-        return ", ".join(devs)  # Отображаем список устройств через запятую
+        # Если список устройств пуст, возвращаем "No devices found"
+        return ", ".join(devs) if devs else "No devices found"
