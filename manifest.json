@@ -1,13 +1,10 @@
 {
-  "domain": "ble_dick",
-  "name": "BLE Dick",
-  "version": "1.0",
-  "requirements": ["bleak>=0.20.2"],
-  "codeowners": ["@pipopos"],
-  "config_flow": true,
-  "integration_type": "device",
-  "iot_class": "local_push",
+  "domain": "your_domain_name",
+  "name": "Your Integration",
+  "codeowners": [],
   "dependencies": [],
-  "documentation": "https://www.home-assistant.io/integrations/ble_dick",
-  "icon": "mdi:bluetooth"
+  "documentation": "https://www.example.com",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "requirements": []
 }

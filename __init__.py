@@ -1,12 +1,8 @@
-"""The BLE Dick integration."""
-
-import logging
-
-# Логирование интеграции
-_LOGGER = logging.getLogger(__name__)
+DOMAIN = "hello_state"
 
 
 async def async_setup(hass, config):
-    """Set up the BLE Dick integration."""
-    _LOGGER.info("Setting up BLE Dick integration")
+    hass.states.async_set("hello_state.world", "Paulus")
+
+    # Return boolean to indicate that initialization was successful.
     return True
