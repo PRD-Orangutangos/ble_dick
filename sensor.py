@@ -10,36 +10,6 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "ble_dick"
 from . import HubConfigEntry
 
-# Глобальная переменная для хранения информации о устройстве
-device_info = None
-
-async def discover_device_by_name(target_name):
-    """Функция для поиска BLE устройства с нужным именем."""
-    global device_info
-    try:
-        devices = await BleakScanner.discover(timeout=2.0)
-        for device in devices:
-            if device.name and target_name.lower() in device.name.lower():
-                # Сразу возвращаем устройство без получения информации о сервисах
-                return device
-        # Если устройство не найдено
-  
-    except Exception as e:
-        _LOGGER.error(f"Ошибка при сканировании устройства: {e}")
-
-    return None
-
-async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: HubConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Добавление сенсора в Home Assistant для отображения информации о BLE устройстве."""
-    new_devices = []
-    new_devices.append(BLEDeviceSensor())
-    if new_devices:
-        async_add_entities(new_devices)
-
 
 class BLEDeviceSensor(SensorEntity):
     """Сенсор для отображения информации о BLE устройстве."""
@@ -51,6 +21,8 @@ class BLEDeviceSensor(SensorEntity):
         self._attr_name = "BLE Device Info"
         self._state = "No device found"
         self._connected = False  # Флаг подключения
+        self._device_name = ""
+        self._device_address = ""
         self.target_device_name = "QHM-12"  # Имя искомого устройства
 
     async def async_added_to_hass(self):
@@ -65,23 +37,15 @@ class BLEDeviceSensor(SensorEntity):
     async def _periodic_update(self):
         """Периодическая задача для обновления состояния."""
         while True:
-            await asyncio.sleep(2)  # Обновление состояния каждые 10 секунд
+            await asyncio.sleep(2)  # Обновление состояния каждые 2 секунды
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             if device:
                 self._state = f"Device found: {device.name}"  # Устройство найдено
                 self._connected = False  # Устройство ещё не подключено
+                self._device_name = device.name
+                self._device_address = device.address
                 self.async_write_ha_state()  # Обновление состояния сенсора
 
-                # Формируем информацию о найденном устройстве
-                global device_info
-                device_info = {
-                    "name": device.name,
-                    "address": device.address,
-                    "connected": self._connected,
-                }
-
-                # Обновляем состояние сенсора
-                self.async_write_ha_state()
             else:
                 self._state = "No device found"
                 self._connected = False  # Устройство не подключено
@@ -101,13 +65,35 @@ class BLEDeviceSensor(SensorEntity):
 
     @property
     def device_state_attributes(self):
-        
-            # output = device_info["name"] + "," + device_info["address"] + "," + device_info["connected"]
-            # Формируем атрибуты для устройства
-            # attributes = {
-            #     "device_name": device_info["name"],
-            #     "device_address": device_info["address"],
-            #     "connected": device_info["connected"],  # Информация о подключении
-            # }
-            # _LOGGER.info(f"Информация о устройстве: {attributes}")
-        return {"device_name": device_info["name"], "connection_status": device_info["connected"]}
+        """Возвращает атрибуты состояния устройства."""
+        return {
+            "device_name": self._device_name,
+            "device_address": self._device_address,
+            "connection_status": self._connected
+        }
+
+
+async def discover_device_by_name(target_name):
+    """Функция для поиска BLE устройства с нужным именем."""
+    try:
+        devices = await BleakScanner.discover(timeout=2.0)
+        for device in devices:
+            if device.name and target_name.lower() in device.name.lower():
+                # Сразу возвращаем устройство без получения информации о сервисах
+                return device
+    except Exception as e:
+        _LOGGER.error(f"Ошибка при сканировании устройства: {e}")
+
+    return None
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: HubConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Добавление сенсора в Home Assistant для отображения информации о BLE устройстве."""
+    new_devices = []
+    new_devices.append(BLEDeviceSensor())
+    if new_devices:
+        async_add_entities(new_devices)
