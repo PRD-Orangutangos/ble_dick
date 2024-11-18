@@ -109,7 +109,7 @@ class BLEDeviceSensor(SensorEntity):
                 "device_address": device_info["address"],
                 "connected": device_info["connected"],  # Информация о подключении
             }
-
+            self.async_write_ha_state()
             _LOGGER.info(f"Информация о устройстве: {attributes}")
             return attributes
         return {}
