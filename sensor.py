@@ -73,9 +73,11 @@ class BLEDeviceSensor(SensorEntity):
                 self.async_write_ha_state()  # Обновление состояния сенсора
 
                 # Формируем информацию о найденном устройстве
+                global device_info
                 device_info = {
                     "name": device.name,
                     "address": device.address,
+                    "connected": self._connected,
                 }
 
                 # Обновляем состояние сенсора
@@ -101,10 +103,11 @@ class BLEDeviceSensor(SensorEntity):
     def device_state_attributes(self):
         """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
         if device_info:
-            # Формируем атрибуты
+            # Формируем атрибуты для устройства
             attributes = {
-                "address": device_info["address"],
-                "connected": self._connected,  # Информация о подключении
+                "device_name": device_info["name"],
+                "device_address": device_info["address"],
+                "connected": device_info["connected"],  # Информация о подключении
             }
 
             _LOGGER.info(f"Информация о устройстве: {attributes}")
