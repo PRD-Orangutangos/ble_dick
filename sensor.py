@@ -68,4 +68,4 @@ class FruitSensor(SensorEntity):
     @property
     def icon(self):
         """Иконка сенсора."""
-        return "mdi:fruit-pineapple"в
+        return "mdi:fruit-pineapple"
