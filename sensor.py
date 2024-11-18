@@ -120,23 +120,3 @@ class BatterySensor(SensorBase):
 
 # This is another sensor, but more simple compared to the battery above. See the
 # comments above for how each field works.
-class IlluminanceSensor(SensorBase):
-    """Representation of a Sensor."""
-
-    device_class = SensorDeviceClass.ILLUMINANCE
-    _attr_unit_of_measurement = LIGHT_LUX
-
-    def __init__(self, roller):
-        """Initialize the sensor."""
-        super().__init__(roller)
-        # As per the sensor, this must be a unique value within this domain. This is done
-        # by using the device ID, and appending "_battery"
-        self._attr_unique_id = f"{self._roller.roller_id}_illuminance"
-
-        # The name of the entity
-        self._attr_name = f"{self._roller.name} Illuminance"
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._roller.illuminance
