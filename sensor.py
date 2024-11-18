@@ -9,6 +9,7 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "ble_dick"
 from . import HubConfigEntry
+
 # Глобальная переменная для хранения информации об устройстве
 device_info = None
 
@@ -80,16 +81,9 @@ class BLEDeviceSensor(SensorEntity):
             await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             if device_info:
-                self._state = f"Device found: {device_info['name']}"  # Краткое состояние
-                # Устанавливаем атрибуты для длинной информации
-                self._attr_extra_state_attributes = {
-                    "address": device_info['address'],
-                    "services": device_info['services'],
-                }
+                self._state = f"Device found: {device_info['name']}"
             else:
                 self._state = "No device found"
-                self._attr_extra_state_attributes = {}
-
             self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
@@ -101,3 +95,13 @@ class BLEDeviceSensor(SensorEntity):
     def icon(self):
         """Иконка сенсора."""
         return "mdi:bluetooth"
+
+    @property
+    def device_state_attributes(self):
+        """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
+        if device_info:
+            return {
+                "address": device_info["address"],
+                "services": ", ".join(device_info["services"]),  # Список сервисов
+            }
+        return {}
