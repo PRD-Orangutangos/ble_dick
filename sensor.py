@@ -1,6 +1,7 @@
 import asyncio
 from bleak import BleakScanner
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.entity import Entity
 
 devs = []  # Глобальный список для хранения найденных BLE устройств
 
@@ -19,13 +20,14 @@ async def discover_devices():
     except Exception:
         devs.append("Scan error")
 
-
 class BLEDeviceSensor(SensorEntity):
     """Сенсор для отображения BLE-устройств."""
 
     def __init__(self):
         """Инициализация сенсора."""
         self._state = "No devices found"
+        self._attr_name = "BLE Devices"
+        self._attr_unique_id = "ble_devices_sensor"
 
     @property
     def state(self):
@@ -36,3 +38,24 @@ class BLEDeviceSensor(SensorEntity):
     def icon(self):
         """Иконка сенсора."""
         return "mdi:bluetooth"
+
+    async def async_update(self):
+        """Метод для обновления состояния сенсора."""
+        await discover_devices()  # Выполнение поиска BLE устройств
+        self._attr_state = self.state  # Обновление состояния сенсора
+
+    async def async_added_to_hass(self):
+        """Действия при добавлении в Home Assistant."""
+        self._update_task = asyncio.create_task(self._periodic_update())
+
+    async def async_will_remove_from_hass(self):
+        """Действия при удалении из Home Assistant."""
+        if hasattr(self, "_update_task"):
+            self._update_task.cancel()
+
+    async def _periodic_update(self):
+        """Периодическая задача для обновления состояния."""
+        while True:
+            await asyncio.sleep(10)  # Обновление данных каждые 10 секунд
+            await self.async_update()  # Обновление данных
+            self.async_write_ha_state()  # Обновление состояния сенсора в Home Assistant
