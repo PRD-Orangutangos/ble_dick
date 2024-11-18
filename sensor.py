@@ -39,14 +39,15 @@ async def get_device_services(device):
     try:
         # Подключаемся к устройству через BleakClient
         async with BleakClient(device.address) as client:
+            # Проверка, что устройство подключено
             if not client.is_connected:
-                await client.connect()  # Подключаемся, если не подключены
+                await client.connect()
             _LOGGER.info(f"Подключено к устройству {device.name} ({device.address})")
 
-            services = client.services  # Используем свойство services вместо get_services()
-            _LOGGER.info(f"Сервисы устройства: {services}")
-
+            # Получаем сервисы
+            services = client.services
             if services:
+                _LOGGER.info(f"Сервисы устройства {device.name}: {services}")
                 return [str(service) for service in services]
             else:
                 _LOGGER.warning(f"Устройство {device.name} не предоставляет сервисы.")
@@ -119,7 +120,7 @@ class BLEDeviceSensor(SensorEntity):
         if device_info:
             return {
                 "address": device_info["address"],
-                "services": ", ".join(device_info["services"]),  # Список сервисов
+                "services": ", ".join(device_info["services"]) if device_info["services"] else "No services",  # Список сервисов
                 "connected": self._connected,  # Информация о подключении
             }
         return {}
