@@ -10,7 +10,7 @@ import voluptuous as vol
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
-DOMAIN = "detailed_hello_world_push"
+DOMAIN = "ble_dick"
 
 _LOGGER = logging.getLogger(__name__)
 
