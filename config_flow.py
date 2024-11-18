@@ -83,8 +83,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 info = await validate_input(self.hass, user_input)
                 devices = await discover()
-                while not devices:
-                    pass
+                # while not devices:
+                #     pass
 
                 # Печать информации о найденных устройствах
                 # if devices:
@@ -94,7 +94,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # else:
                 # print("Устройства не найдены.")
 
-                return self.async_create_entry(title=info["title"], data=devices)
+                return self.async_create_entry(
+                    title=info["title"], data=devices[0].name
+                )
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             except InvalidHost:
