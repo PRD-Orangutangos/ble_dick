@@ -5,13 +5,21 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 DOMAIN = "ble_dick"
+from . import HubConfigEntry
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    config_entry: HubConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up button platform."""
-    async_add_entities([ExampleButton()])
+    """Add sensors for passed config_entry in HA."""
+    hub = config_entry.runtime_data
+    new_devices = []
+    for roller in hub.rollers:
+        new_devices.append(ExampleButton())
+    if new_devices:
+        async_add_entities(new_devices)
 
 
 class ExampleButton(ButtonEntity):
