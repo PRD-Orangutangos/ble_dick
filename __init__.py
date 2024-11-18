@@ -1,29 +1,25 @@
-"""
-The "hello world" custom component.
-
-This component implements the bare minimum that a component should implement.
-
-Configuration:
-
-To use the hello_world component you will need to add the following to your
-configuration.yaml file.
-
-hello_world:
-"""
-
 from __future__ import annotations
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.const import Platform
 
-# The domain of your component. Should be equal to the name of your component.
-DOMAIN = "hello_world"
+from . import hub
+
+# List of platforms to support. There should be a matching .py file for each,
+# eg <cover.py> and <sensor.py>
+PLATFORMS = [Platform.SENSOR, Platform.COVER]
+
+type HubConfigEntry = ConfigEntry[hub.Hub]
 
 
-def setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up a skeleton component."""
-    # States are in the format DOMAIN.OBJECT_ID.
-    hass.states.set("hello_world.Hello_World", "Works!")
+async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry) -> bool:
+    """Set up Hello World from a config entry."""
+    # Store an instance of the "connecting" class that does the work of speaking
+    # with your actual devices.
+    entry.runtime_data = hub.Hub(hass, entry.data["host"])
 
-    # Return boolean to indicate that initialization was successfully.
+    # This creates each HA object for each platform your device requires.
+    # It's done by calling the `async_setup_entry` function in each platform module.
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
