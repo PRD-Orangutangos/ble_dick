@@ -15,36 +15,27 @@ device_info = None
 
 async def discover_device_by_name(target_name):
     """Функция для поиска BLE устройства с нужным именем."""
-    global device_info
     try:
         devices = await BleakScanner.discover(timeout=5.0)
         for device in devices:
             if device.name and target_name.lower() in device.name.lower():
-                # Сразу возвращаем устройство, не получая информацию о сервисах
                 return device
-        # Если устройство не найдено
-        device_info = None
+        return None
     except Exception as e:
         _LOGGER.error(f"Ошибка при сканировании устройства: {e}")
-
-    return None
+        return None
 
 async def get_device_services(device):
     """Получение сервисов подключённого устройства."""
     try:
-        # Подключаемся к устройству через BleakClient
         async with BleakClient(device.address) as client:
-            # Проверка, что устройство подключено
             if not client.is_connected:
                 await client.connect()
             _LOGGER.info(f"Подключено к устройству {device.name} ({device.address})")
 
-            # Получаем сервисы
             services = client.services
             if services:
-                # Формируем строковое представление для каждого сервиса
                 services_list = [f"{service.uuid} ({service.handle}): {service.description}" for service in services]
-                _LOGGER.info(f"Сервисы устройства {device.name}: {services_list}")
                 return services_list
             else:
                 _LOGGER.warning(f"Устройство {device.name} не предоставляет сервисы.")
@@ -74,7 +65,8 @@ class BLEDeviceSensor(SensorEntity):
         self._attr_unique_id = "ble_device_sensor"
         self._attr_name = "BLE Device Info"
         self._state = "No device found"
-        self._connected = False  # Флаг подключения
+        self._connected = False
+        self._device_info = None  # Атрибут для хранения информации об устройстве
         self.target_device_name = "QHM-12"  # Имя искомого устройства
 
     async def async_added_to_hass(self):
@@ -90,29 +82,31 @@ class BLEDeviceSensor(SensorEntity):
         """Периодическая задача для обновления состояния."""
         while True:
             await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
-            device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
+            device = await discover_device_by_name(self.target_device_name)
             if device:
-                self._state = f"Device found: {device.name}"  # Устройство найдено
-                self._connected = False  # Устройство ещё не подключено
-                self.async_write_ha_state()  # Обновление состояния сенсора
+                self._state = f"Device found: {device.name}"
+                self._connected = False
+                self.async_write_ha_state()
 
-                # Теперь пытаемся подключиться к устройству и получить информацию о сервисах
                 services = await get_device_services(device)
                 if services:
-                    self._state = f"Device connected: {device.name}"  # Устройство подключено
-                    device_info = {
+                    self._device_info = {
                         "name": device.name,
                         "address": device.address,
                         "services": services,
                     }
+                    self._state = f"Device connected: {device.name}"
+                    self._connected = True
                 else:
+                    self._device_info = None
                     self._state = "No services found"
-                    self._connected = False  # Устройство не подключено
-                self.async_write_ha_state()  # Обновление состояния сенсора
+                    self._connected = False
+                self.async_write_ha_state()
             else:
                 self._state = "No device found"
-                self._connected = False  # Устройство не подключено
-            self.async_write_ha_state()  # Обновление состояния сенсора
+                self._connected = False
+                self._device_info = None
+                self.async_write_ha_state()
 
     @property
     def state(self):
@@ -123,19 +117,27 @@ class BLEDeviceSensor(SensorEntity):
     def icon(self):
         """Иконка сенсора."""
         if self._connected:
-            return "mdi:bluetooth-connected"  # Иконка для подключенного устройства
-        return "mdi:bluetooth"  # Иконка для устройства, к которому не подключены
+            return "mdi:bluetooth-connected"
+        return "mdi:bluetooth"
 
     @property
     def device_state_attributes(self):
         """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
-        if device_info:
-            # Проверка наличия сервисов и их вывод
-            services = ", ".join(device_info["services"]) if device_info["services"] else "No services"
-            _LOGGER.info(f"Сервисы устройства: {services}")
+        if self._device_info:
+            # Ограничение длины атрибута для сервисов
+            services = ", ".join(self._device_info["services"]) if self._device_info["services"] else "No services"
+            if len(services) > 255:
+                services = services[:255]  # Обрезаем строку, если она слишком длинная
+
+            # Разделим сервисы на несколько атрибутов, если они слишком длинные
+            service_parts = [services[i:i+255] for i in range(0, len(services), 255)]
+
+            # Возвращаем атрибуты с разделенными сервисами
             return {
-                "address": device_info["address"],
-                "services": services,  # Список сервисов
-                "connected": self._connected,  # Информация о подключении
+                "address": self._device_info["address"],
+                "connected": self._connected,
+                "services_part_1": service_parts[0] if len(service_parts) > 0 else "",
+                "services_part_2": service_parts[1] if len(service_parts) > 1 else "",
+                "services_part_3": service_parts[2] if len(service_parts) > 2 else "",
             }
         return {}
