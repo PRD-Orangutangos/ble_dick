@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 DOMAIN = "ble_dick"
-
+from . import HubConfigEntry
 # Глобальный список для хранения доступных устройств
 devs = []
 
