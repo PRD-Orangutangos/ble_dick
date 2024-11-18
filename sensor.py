@@ -1,21 +1,26 @@
 import asyncio
-import random
+from bleak import BleakScanner
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from . import HubConfigEntry
 
-DOMAIN = "fruit_sensor"
+DOMAIN = "ble_dick"
 
-# Глобальный список фруктов
-fruits = ["Apple", "Banana", "Orange", "Grapes", "Pineapple", "Mango", "Peach", "Strawberry"]
+# Глобальный список для хранения доступных устройств
+devs = []
 
-async def discover_fruits():
-    """Функция для генерации случайного списка фруктов."""
-    global fruits_list
-    fruits_list = random.sample(fruits, 3)  # Список из 3 случайных фруктов
-
+async def discover_devices():
+    """Функция для поиска доступных BLE устройств."""
+    global devs
+    try:
+        devices = await BleakScanner.discover(timeout=5.0)
+        devs.clear()
+        if devices:
+            devs.extend([device.name or f"Unknown ({device.address})" for device in devices])
+        else:
+            devs.append("No devices found")
+    except Exception as e:
+        devs.append(f"Error: {e}")
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -23,25 +28,24 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Добавление сенсоров в Home Assistant."""
-    hub = config_entry.runtime_data
     new_devices = []
 
-    # Добавление сенсора для отображения случайных фруктов
-    new_devices.append(FruitSensor())
+    # Добавление сенсора для отображения найденных BLE устройств
+    new_devices.append(BLEDeviceSensor())
 
     if new_devices:
         async_add_entities(new_devices)
 
 
-class FruitSensor(SensorEntity):
-    """Сенсор для отображения случайных фруктов."""
+class BLEDeviceSensor(SensorEntity):
+    """Сенсор для отображения списка BLE устройств."""
 
     def __init__(self):
         """Инициализация сенсора."""
         super().__init__()
-        self._attr_unique_id = "fruit_sensor"
-        self._attr_name = "Random Fruit"
-        self._state = "No fruits found"
+        self._attr_unique_id = "ble_devices_sensor"
+        self._attr_name = "BLE Devices"
+        self._state = "No devices found"
 
     async def async_added_to_hass(self):
         """Действие при добавлении в Home Assistant."""
@@ -56,16 +60,16 @@ class FruitSensor(SensorEntity):
         """Периодическая задача для обновления состояния."""
         while True:
             await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
-            await discover_fruits()  # Генерация случайных фруктов
+            await discover_devices()  # Поиск BLE устройств
             self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
     def state(self):
-        """Возвращает текущее состояние сенсора."""
-        global fruits_list
-        return ", ".join(fruits_list) if fruits_list else "No fruits found"
+        """Возвращает текущее состояние сенсора (список BLE устройств)."""
+        global devs
+        return ", ".join(devs) if devs else "No devices found"
 
     @property
     def icon(self):
         """Иконка сенсора."""
-        return "mdi:fruit-pineapple"
+        return "mdi:bluetooth"
