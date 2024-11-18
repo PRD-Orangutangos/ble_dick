@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "ble_dick"
 from . import HubConfigEntry
 
-# Глобальная переменная для хранения информации об устройстве
+# Глобальная переменная для хранения информации о устройстве
 device_info = None
 
 async def discover_device_by_name(target_name):
