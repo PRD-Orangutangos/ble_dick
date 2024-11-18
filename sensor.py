@@ -1,53 +1,69 @@
 import asyncio
-from bleak import BleakScanner
+from bleak import BleakScanner, BleakClient
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+import logging
+
+_LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "ble_dick"
 from . import HubConfigEntry
-# Глобальный список для хранения доступных устройств
-devs = []
+# Глобальная переменная для хранения информации об устройстве
+device_info = None
 
-async def discover_devices():
-    """Функция для поиска доступных BLE устройств."""
-    global devs
+async def discover_device_by_name(target_name):
+    """Функция для поиска BLE устройства с нужным именем."""
+    global device_info
     try:
         devices = await BleakScanner.discover(timeout=5.0)
-        devs.clear()
-        if devices:
-            # Ограничиваем количество устройств для отображения
-            devs.extend([device.name or f"Unknown ({device.address})" for device in devices[:3]])  # Показываем не более 3 устройств
-        else:
-            devs.append("No devices found")
+        for device in devices:
+            if device.name and target_name.lower() in device.name.lower():
+                device_info = {
+                    "name": device.name,
+                    "address": device.address,
+                    "services": await get_device_services(device),
+                }
+                return device
+        # Если устройство не найдено
+        device_info = None
     except Exception as e:
-        devs.append(f"Error: {e}")
+        _LOGGER.error(f"Ошибка при сканировании устройства: {e}")
 
+    return None
+
+async def get_device_services(device):
+    """Получение сервисов подключённого устройства."""
+    try:
+        async with BleakClient(device.address) as client:
+            services = await client.get_services()
+            return [str(service) for service in services]
+    except Exception as e:
+        _LOGGER.error(f"Не удалось получить сервисы для устройства {device.name}: {e}")
+        return []
 
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: HubConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Добавление сенсоров в Home Assistant."""
+    """Добавление сенсора в Home Assistant для отображения информации о BLE устройстве."""
     new_devices = []
-
-    # Добавление сенсора для отображения найденных BLE устройств
     new_devices.append(BLEDeviceSensor())
-
     if new_devices:
         async_add_entities(new_devices)
 
 
 class BLEDeviceSensor(SensorEntity):
-    """Сенсор для отображения списка BLE устройств."""
+    """Сенсор для отображения информации о BLE устройстве."""
 
     def __init__(self):
         """Инициализация сенсора."""
         super().__init__()
-        self._attr_unique_id = "ble_devices_sensor"
-        self._attr_name = "BLE Devices"
-        self._state = "No devices found"
+        self._attr_unique_id = "ble_device_sensor"
+        self._attr_name = "BLE Device Info"
+        self._state = "No device found"
+        self.target_device_name = "QHM-12"  # Имя искомого устройства
 
     async def async_added_to_hass(self):
         """Действие при добавлении в Home Assistant."""
@@ -62,20 +78,17 @@ class BLEDeviceSensor(SensorEntity):
         """Периодическая задача для обновления состояния."""
         while True:
             await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
-            await discover_devices()  # Поиск BLE устройств
+            device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
+            if device_info:
+                self._state = f"Name: {device_info['name']}, Address: {device_info['address']}, Services: {', '.join(device_info['services'])}"
+            else:
+                self._state = "No device found"
             self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
     def state(self):
-        """Возвращает текущее состояние сенсора (список BLE устройств)."""
-        global devs
-        if not devs:
-            return "No devices found"
-        # Ограничиваем длину строки до 255 символов
-        devices_state = ", ".join(devs)
-        if len(devices_state) > 255:
-            devices_state = devices_state[:252] + "..."  # Обрезаем строку, если она слишком длинная
-        return devices_state
+        """Возвращает текущее состояние сенсора (информация о BLE устройстве)."""
+        return self._state
 
     @property
     def icon(self):
