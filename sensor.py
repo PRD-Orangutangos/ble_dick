@@ -1,10 +1,14 @@
 import asyncio
+import logging
 from bleak import BleakScanner
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import HubConfigEntry
+
+# Настройка логгера
+_LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "ble_dick"
 devs = []  # Глобальный список для хранения найденных устройств
@@ -13,18 +17,18 @@ devs = []  # Глобальный список для хранения найд�
 async def discover_devices():
     """Функция для поиска всех доступных Bluetooth устройств."""
     global devs
-    print("Поиск BLE-устройств...")
+    _LOGGER.info("Поиск BLE-устройств...")  # Логируем начало сканирования
     try:
         devices = await BleakScanner.discover()
-        print(f"Найдено {len(devices)} устройств.")  # Отладочное сообщение
+        _LOGGER.info(f"Найдено {len(devices)} устройств.")  # Логируем количество найденных устройств
         devs.clear()
         if devices:
             devs.extend([device.name or f"Unknown ({device.address})" for device in devices])
         else:
             devs.append("No devices found")
-        print(f"Устройства: {devs}")  # Выводим устройства для отладки
+        _LOGGER.info(f"Устройства: {devs}")  # Логируем найденные устройства
     except Exception as e:
-        print(f"Ошибка при сканировании BLE: {e}")
+        _LOGGER.error(f"Ошибка при сканировании BLE: {e}")  # Логируем ошибку
         devs.append("Scan error")
 
 
@@ -93,13 +97,13 @@ class BLEDeviceSensor(SensorEntity):
         self._attr_unique_id = f"{self._roller.roller_id}_ble_devices"
         self._attr_name = f"{self._roller.name} BLE Devices"
         self._state = "No devices found"
-        print(f"Создан сенсор для {self._roller.name}")  # Отладочное сообщение
+        _LOGGER.debug(f"Создан сенсор для {self._roller.name}")  # Логируем создание сенсора
 
     @property
     def state(self):
         """Возвращает текущее состояние сенсора."""
         global devs
-        print(f"Текущее состояние сенсора: {', '.join(devs)}")  # Отладочное сообщение
+        _LOGGER.debug(f"Текущее состояние сенсора: {', '.join(devs)}")  # Логируем состояние сенсора
         return ", ".join(devs) if devs else "No devices found"
 
     @property
