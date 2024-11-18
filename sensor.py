@@ -97,7 +97,10 @@ class BLEDeviceSensor(SensorEntity):
             await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             if device_info:
-                self._state = f"Device found: {device_info['name']}"
+                if not self._connected:
+                    self._state = f"Device found: {device_info['name']}"  # Устройство найдено
+                else:
+                    self._state = f"Device connected: {device_info['name']}"  # Устройство подключено
                 self._connected = True  # Устройство подключено
                 # Выводим информацию о сервисах в лог
                 _LOGGER.info(f"Сервисы устройства {device_info['name']}: {device_info['services']}")
