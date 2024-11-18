@@ -99,8 +99,9 @@ class BLEDeviceSensor(SensorEntity):
 
     @property
     def state(self):
+        output = device_info["name"] + "," + device_info["address"] + "," + device_info["connected"]
         """Возвращает текущее состояние сенсора (информация о BLE устройстве)."""
-        return self._state
+        return output
 
     @property
     def icon(self):
@@ -109,17 +110,3 @@ class BLEDeviceSensor(SensorEntity):
             return "mdi:bluetooth-connected"  # Иконка для подключенного устройства
         return "mdi:bluetooth"  # Иконка для устройства, к которому не подключены
 
-    @property
-    def state(self):
-        """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
-        if device_info:
-            output = device_info["name"] + "," + device_info["address"] + "," + device_info["connected"]
-            # Формируем атрибуты для устройства
-            # attributes = {
-            #     "device_name": device_info["name"],
-            #     "device_address": device_info["address"],
-            #     "connected": device_info["connected"],  # Информация о подключении
-            # }
-            # _LOGGER.info(f"Информация о устройстве: {attributes}")
-            return output
-        return {}
