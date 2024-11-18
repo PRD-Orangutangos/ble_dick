@@ -5,10 +5,19 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from . import HubConfigEntry
 
 # Настройка логгера
 _LOGGER = logging.getLogger(__name__)
+
+# Устанавливаем уровень логирования
+_LOGGER.setLevel(logging.DEBUG)
+
+# Настройка логирования для вывода в консоль
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+_LOGGER.addHandler(console_handler)
 
 DOMAIN = "ble_dick"
 devs = []  # Глобальный список для хранения найденных BLE устройств
@@ -105,6 +114,8 @@ class BLEDeviceSensor(SensorEntity):
     def state(self):
         """Возвращает текущее состояние сенсора."""
         global devs
+        if not devs:
+            _LOGGER.debug("Нет доступных BLE устройств.")  # Логируем, если нет устройств
         _LOGGER.debug(f"Текущее состояние сенсора: {', '.join(devs)}")  # Логируем состояние сенсора
         return ", ".join(devs) if devs else "No devices found"
 
