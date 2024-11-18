@@ -9,6 +9,7 @@ import voluptuous as vol
 
 from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
+from bleak import discover
 
 DOMAIN = "ble_dick"
 
@@ -81,6 +82,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
+                devices = await discover()
+                if not devices:
+                    raise CannotConnect
+                else:
+                    self.async_show_form(
+                        step_id=devices, data_schema=DATA_SCHEMA, errors=errors
+                    )
+                # Печать информации о найденных устройствах
+                # if devices:
+                #     print(f"Найдено {len(devices)} устройств:")
+                #     for device in devices:
+                #         print(f"Имя: {device.name}, Адрес: {device.address}, RSSI: {device.rssi}")
+                # else:
+                # print("Устройства не найдены.")
 
                 return self.async_create_entry(title=info["title"], data=user_input)
             except CannotConnect:
