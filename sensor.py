@@ -86,7 +86,7 @@ class SensorBase(Entity):
     async def _periodic_update(self):
         """Периодическая задача для обновления состояния сенсора."""
         while True:
-            await asyncio.sleep(60)  # обновление каждую минуту
+            await asyncio.sleep(1)  # обновление каждую минуту
             await self.async_update()  # обновление состояния сенсора
 
     async def async_update(self):
