@@ -1,5 +1,6 @@
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
+import voluptuous as vol
 
 
 class BleDickConfigFlow(config_entries.ConfigFlow):
@@ -21,7 +22,5 @@ class BleDickConfigFlow(config_entries.ConfigFlow):
                 ),
             )
 
-        # Тут вы можете выполнить необходимые проверки, например, для подключения устройства.
-
-        # Завершаем конфигурацию и добавляем интеграцию
+        # Проводим необходимые проверки (например, подключение устройства)
         return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
