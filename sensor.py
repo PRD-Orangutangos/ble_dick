@@ -1,5 +1,5 @@
 import asyncio
-from bleak import BleakScanner
+from bleak import BleakScanner, BleakClient
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -24,6 +24,7 @@ class BLEDeviceSensor(SensorEntity):
         self._device_name = ""
         self._device_address = ""
         self.target_device_name = "QHM-12"  # Имя искомого устройства
+        self._client = None  # Объект клиента BLE для управления соединением
 
     async def async_added_to_hass(self):
         """Действие при добавлении в Home Assistant."""
@@ -34,24 +35,43 @@ class BLEDeviceSensor(SensorEntity):
         if hasattr(self, "_update_task"):
             self._update_task.cancel()
 
+        # Закрыть соединение, если оно открыто
+        if self._client and self._connected:
+            await self._client.disconnect()
+
     async def _periodic_update(self):
-        """Периодическая задача для обновления состояния."""
+        """Периодическая задача для обновления состояния и подключения."""
         while True:
             await asyncio.sleep(2)  # Обновление состояния каждые 2 секунды
+
+            # Если устройство уже подключено, пропускаем поиск
+            if self._connected:
+                continue
+
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             if device:
                 self._state = f"Device found: {device.name}"  # Устройство найдено
-                self._connected = False  # Устройство ещё не подключено
                 self._device_name = device.name
                 self._device_address = device.address
-                # Логируем атрибуты перед обновлением состояния
-                _LOGGER.debug(f"Updating sensor state: {self._device_name}, {self._device_address}, connected: {self._connected}")
-                self.async_write_ha_state()  # Обновление состояния сенсора
 
+                # Логируем, что устройство найдено
+                _LOGGER.debug(f"Found device: {self._device_name}, {self._device_address}")
+
+                try:
+                    # Попытка подключения к устройству
+                    self._client = BleakClient(device.address)
+                    await self._client.connect()
+                    self._connected = True  # Устройство подключено
+                    _LOGGER.info(f"Connected to device: {self._device_name}")
+                    self.async_write_ha_state()  # Обновление состояния сенсора
+                except Exception as e:
+                    _LOGGER.error(f"Failed to connect to device: {e}")
+                    self._state = "Failed to connect"
+                    self._connected = False  # Не удалось подключиться
+                    self.async_write_ha_state()  # Обновление состояния сенсора
             else:
                 self._state = "No device found"
                 self._connected = False  # Устройство не подключено
-                # Логируем, что устройство не найдено
                 _LOGGER.debug("No device found, resetting state.")
                 self.async_write_ha_state()  # Обновление состояния сенсора
 
@@ -79,6 +99,7 @@ class BLEDeviceSensor(SensorEntity):
                 "connection_status": self._connected
             }
         return {}  # Если атрибуты не установлены, возвращаем пустой словарь
+
 
 async def discover_device_by_name(target_name):
     """Функция для поиска BLE устройства с нужным именем."""
