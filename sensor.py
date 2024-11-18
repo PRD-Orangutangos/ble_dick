@@ -56,6 +56,6 @@ class BLEDeviceSensor(SensorEntity):
     async def _periodic_update(self):
         """Периодическая задача для обновления состояния."""
         while True:
-            await asyncio.sleep(10)  # Обновление данных каждые 10 секунд
+            await asyncio.sleep(5)  # Обновление данных каждые 10 секунд
             await self.async_update()  # Обновление данных
             self.async_write_ha_state()  # Обновление состояния сенсора в Home Assistant
