@@ -103,6 +103,7 @@ class BLEDeviceSensor(SensorEntity):
     def state(self):
         """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
         if device_info:
+            output = device_info["name"] + "," + device_info["address"] + "," + device_info["connected"]
             # Формируем атрибуты для устройства
             # attributes = {
             #     "device_name": device_info["name"],
@@ -110,5 +111,5 @@ class BLEDeviceSensor(SensorEntity):
             #     "connected": device_info["connected"],  # Информация о подключении
             # }
             # _LOGGER.info(f"Информация о устройстве: {attributes}")
-            return ", ".join(device_info)
+            return output
         return {}
