@@ -1,6 +1,22 @@
 from homeassistant.helpers.entity import Entity
 from .const import DOMAIN
 
+from homeassistant.components.image import ImageEntity
+
+
+class YourIntegrationImageEntity(ImageEntity):
+    def __init__(self, name, image_path):
+        self._name = name
+        self._image_path = image_path
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def image(self):
+        return self._image_path
+
 
 class MyBLEDeviceSensor(Entity):
     """Representation of a BLE sensor."""

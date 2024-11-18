@@ -1,8 +1,9 @@
 {
-  "domain": "my_ble_device",
-  "name": "My BLE Device",
+  "domain": "ble_dick",
+  "name": "ble_dick",
   "version": "1.0",
   "requirements": ["bleak>=0.20.2"],
   "codeowners": ["@pipopos"],
-  "iot_class": "local_push"
+  "iot_class": "local_push",
+  "image": "/local/community/ble_dick/icons/main.png"
 }
