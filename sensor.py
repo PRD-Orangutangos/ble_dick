@@ -100,16 +100,15 @@ class BLEDeviceSensor(SensorEntity):
         return "mdi:bluetooth"  # Иконка для устройства, к которому не подключены
 
     @property
-    def device_state_attributes(self):
+    def state(self):
         """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
         if device_info:
             # Формируем атрибуты для устройства
-            attributes = {
-                "device_name": device_info["name"],
-                "device_address": device_info["address"],
-                "connected": device_info["connected"],  # Информация о подключении
-            }
-            self.async_write_ha_state()
-            _LOGGER.info(f"Информация о устройстве: {attributes}")
-            return attributes
+            # attributes = {
+            #     "device_name": device_info["name"],
+            #     "device_address": device_info["address"],
+            #     "connected": device_info["connected"],  # Информация о подключении
+            # }
+            # _LOGGER.info(f"Информация о устройстве: {attributes}")
+            return ", ".join(device_info)
         return {}
