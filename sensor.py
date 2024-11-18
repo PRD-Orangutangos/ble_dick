@@ -92,15 +92,17 @@ class BLEDeviceSensor(SensorEntity):
     @property
     def device_state_attributes(self):
         """Возвращает атрибуты состояния устройства."""
-        # Возвращаем атрибуты как словарь
-        if self._device_name and self._device_address:
+        # Обновление атрибутов после подключения
+        if self._connected and self._device_name and self._device_address:
             _LOGGER.debug(f"Returning device attributes: {self._device_name}, {self._device_address}, {self._connected}")
             return {
                 "device_name": self._device_name,
                 "device_address": self._device_address,
                 "connection_status": self._connected
             }
-        return {}  # Если атрибуты не установлены, возвращаем пустой словарь
+        # Если устройство не подключено или данные не обновлены, возвращаем пустой словарь
+        _LOGGER.debug(f"Returning empty attributes, connected: {self._connected}")
+        return {}
 
 
 async def discover_device_by_name(target_name):
