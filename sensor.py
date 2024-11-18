@@ -7,7 +7,7 @@
 # what the unit is, so it can display the correct range. For predefined types (such as
 # battery), the unit_of_measurement should match what's expected.
 import random
-
+import asyncio
 from homeassistant.components.sensor import (
     SensorDeviceClass,
 )
@@ -74,11 +74,26 @@ class SensorBase(Entity):
         """Run when this Entity has been added to HA."""
         # Sensors should also register callbacks to HA when their state changes
         self._roller.register_callback(self.async_write_ha_state)
+        self._update_task = asyncio.create_task(self._periodic_update())
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
         # The opposite of async_added_to_hass. Remove any registered call backs here.
         self._roller.remove_callback(self.async_write_ha_state)
+        if hasattr(self, "_update_task"):
+            self._update_task.cancel()
+
+    async def _periodic_update(self):
+        """Периодическая задача для обновления состояния сенсора."""
+        while True:
+            await asyncio.sleep(60)  # обновление каждую минуту
+            await self.async_update()  # обновление состояния сенсора
+
+    async def async_update(self):
+        """Обновление состояния сенсора."""
+        # Например, обновим батарею с использованием случайного значения
+        self._state = random.randint(0, 100)
+        self.async_write_ha_state()
 
 
 class BatterySensor(SensorBase):
