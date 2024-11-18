@@ -22,6 +22,7 @@ class BLEDeviceSensor(SensorEntity):
         self._state = "No device found"
         self._connected = False  # Флаг подключения
         self._device_name = ""
+        self._device_services = []  # Список сервисов
         self._device_address = ""
         self.target_device_name = "QHM-12"  # Имя искомого устройства
         self._client = None  # Объект клиента BLE для управления соединением
@@ -65,6 +66,8 @@ class BLEDeviceSensor(SensorEntity):
                     await self._client.connect()
                     self._connected = True  # Устройство подключено
                     self._state = f"Connected to {self._device_name}"
+                    services = await self._client.get_services()
+                    self._device_services = [service.uuid for service in services]
                     _LOGGER.info(f"Connected to device: {self._device_name}")
                 except Exception as e:
                     _LOGGER.error(f"Failed to connect to device: {e}")
@@ -98,7 +101,8 @@ class BLEDeviceSensor(SensorEntity):
             return {
                 "device_name": self._device_name,
                 "device_address": self._device_address,
-                "connection_status": self._connected
+                "connection_status": self._connected,
+                "services": self._device_services,
             }
         # Если устройство не подключено или данные не обновлены, возвращаем пустой словарь
         _LOGGER.debug(f"Returning empty attributes, connected: {self._connected}")
