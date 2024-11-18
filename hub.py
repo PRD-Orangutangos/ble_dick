@@ -4,6 +4,7 @@ import asyncio
 import random
 
 from homeassistant.core import HomeAssistant
+from typing import Callable
 
 
 class Hub:
