@@ -47,8 +47,10 @@ async def get_device_services(device):
             # Получаем сервисы
             services = client.services
             if services:
-                _LOGGER.info(f"Сервисы устройства {device.name}: {services}")
-                return [str(service) for service in services]
+                # Формируем строковое представление для каждого сервиса
+                services_list = [f"{service.uuid} ({service.handle}): {service.description}" for service in services]
+                _LOGGER.info(f"Сервисы устройства {device.name}: {services_list}")
+                return services_list
             else:
                 _LOGGER.warning(f"Устройство {device.name} не предоставляет сервисы.")
                 return []
