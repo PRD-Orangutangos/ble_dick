@@ -4,13 +4,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 # Константы для компонента
 DOMAIN = "ble_dick"
+from . import HubConfigEntry
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry,
+    config_entry: HubConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    hub = config_entry.runtime_data
     """Настройка платформы Switch."""
     # Добавляем один виртуальный переключатель
     async_add_entities([ExampleSwitch()])
