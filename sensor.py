@@ -94,6 +94,10 @@ class BLEDeviceSensor(SensorEntity):
         """Возвращает атрибуты состояния устройства."""
         # Обновление атрибутов после подключения
         if self._connected and self._device_name and self._device_address:
+            self._attr_extra_state_attributes = {
+                    "address": self._device_address,
+                    "services": self._device_name,
+            }
             _LOGGER.debug(f"Returning device attributes: {self._device_name}, {self._device_address}, {self._connected}")
             return {
                 "device_name": self._device_name,
