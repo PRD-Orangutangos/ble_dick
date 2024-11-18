@@ -77,27 +77,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # and when that has some validated input, it calls `async_create_entry` to
         # actually create the HA config entry. Note the "title" value is returned by
         # `validate_input` above.
-        # errors = {}
-        # if user_input is not None:
-        #     try:
-        #         info = await validate_input(self.hass, user_input)
+        errors = {}
+        if user_input is not None:
+            try:
+                info = await validate_input(self.hass, user_input)
 
-        #         return self.async_create_entry(title=info["title"], data=user_input)
-        #     except CannotConnect:
-        #         errors["base"] = "cannot_connect"
-        #     except InvalidHost:
-        #         # The error string is set here, and should be translated.
-        #         # This example does not currently cover translations, see the
-        #         # comments on `DATA_SCHEMA` for further details.
-        #         # Set the error on the `host` field, not the entire form.
-        #         errors["host"] = "cannot_connect"
-        #     except Exception:  # pylint: disable=broad-except
-        #         _LOGGER.exception("Unexpected exception")
-        #         errors["base"] = "unknown"
+                return self.async_create_entry(title=info["title"], data=user_input)
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            except InvalidHost:
+                # The error string is set here, and should be translated.
+                # This example does not currently cover translations, see the
+                # comments on `DATA_SCHEMA` for further details.
+                # Set the error on the `host` field, not the entire form.
+                errors["host"] = "cannot_connect"
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception")
+                errors["base"] = "unknown"
 
         # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=None
+            step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
 
 
