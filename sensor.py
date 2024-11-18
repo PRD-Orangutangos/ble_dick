@@ -41,8 +41,16 @@ async def get_device_services(device):
         async with BleakClient(device.address) as client:
             if not client.is_connected:
                 await client.connect()  # Подключаемся, если не подключены
-            services = await client.get_services()  # Получаем сервисы после подключения
-            return [str(service) for service in services]
+            _LOGGER.info(f"Подключено к устройству {device.name} ({device.address})")
+
+            services = client.services  # Используем свойство services вместо get_services()
+            _LOGGER.info(f"Сервисы устройства: {services}")
+
+            if services:
+                return [str(service) for service in services]
+            else:
+                _LOGGER.warning(f"Устройство {device.name} не предоставляет сервисы.")
+                return []
     except Exception as e:
         _LOGGER.error(f"Не удалось получить сервисы для устройства {device.name}: {e}")
         return []
@@ -68,6 +76,7 @@ class BLEDeviceSensor(SensorEntity):
         self._attr_unique_id = "ble_device_sensor"
         self._attr_name = "BLE Device Info"
         self._state = "No device found"
+        self._connected = False  # Флаг подключения
         self.target_device_name = "QHM-12"  # Имя искомого устройства
 
     async def async_added_to_hass(self):
@@ -86,8 +95,10 @@ class BLEDeviceSensor(SensorEntity):
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
             if device_info:
                 self._state = f"Device found: {device_info['name']}"
+                self._connected = True  # Устройство подключено
             else:
                 self._state = "No device found"
+                self._connected = False  # Устройство не подключено
             self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
@@ -98,7 +109,9 @@ class BLEDeviceSensor(SensorEntity):
     @property
     def icon(self):
         """Иконка сенсора."""
-        return "mdi:bluetooth"
+        if self._connected:
+            return "mdi:bluetooth-connected"  # Иконка для подключенного устройства
+        return "mdi:bluetooth"  # Иконка для устройства, к которому не подключены
 
     @property
     def device_state_attributes(self):
@@ -107,5 +120,6 @@ class BLEDeviceSensor(SensorEntity):
             return {
                 "address": device_info["address"],
                 "services": ", ".join(device_info["services"]),  # Список сервисов
+                "connected": self._connected,  # Информация о подключении
             }
         return {}
