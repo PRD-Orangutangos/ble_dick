@@ -44,11 +44,13 @@ class BLEDeviceSensor(SensorEntity):
         while True:
             await asyncio.sleep(2)  # Обновление состояния каждые 2 секунды
 
-            # Если устройство уже подключено, пропускаем поиск
+            # Если устройство уже подключено, просто обновляем атрибуты
             if self._connected:
-                continue
+                _LOGGER.debug(f"Device already connected: {self._device_name}, {self._device_address}")
+                continue  # Пропускаем повторный поиск устройства
 
-            device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
+            # Поиск устройства по имени
+            device = await discover_device_by_name(self.target_device_name)
             if device:
                 self._state = f"Device found: {device.name}"  # Устройство найдено
                 self._device_name = device.name
@@ -62,18 +64,18 @@ class BLEDeviceSensor(SensorEntity):
                     self._client = BleakClient(device.address)
                     await self._client.connect()
                     self._connected = True  # Устройство подключено
+                    self._state = f"Connected to {self._device_name}"
                     _LOGGER.info(f"Connected to device: {self._device_name}")
-                    self.async_write_ha_state()  # Обновление состояния сенсора
                 except Exception as e:
                     _LOGGER.error(f"Failed to connect to device: {e}")
                     self._state = "Failed to connect"
                     self._connected = False  # Не удалось подключиться
-                    self.async_write_ha_state()  # Обновление состояния сенсора
             else:
                 self._state = "No device found"
                 self._connected = False  # Устройство не подключено
                 _LOGGER.debug("No device found, resetting state.")
-                self.async_write_ha_state()  # Обновление состояния сенсора
+            
+            self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
     def state(self):
