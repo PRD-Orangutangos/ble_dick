@@ -7,5 +7,5 @@
   "config_flow": true,
   "integration_type": "device",
   "iot_class": "local_push",
-  "image": "/local/community/ble_dick/main.png"
+  "image": "/local/community/ble_dick/icon.png"
 }
