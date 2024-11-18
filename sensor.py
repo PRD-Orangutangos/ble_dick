@@ -1,6 +1,5 @@
 import asyncio
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.const import PERCENTAGE
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -20,7 +19,7 @@ async def discover_devices():
     # Очищаем список и обновляем с новыми устройствами
     devs.clear()
     if devices:
-        devs.extend([device.name for device in devices if device.name])  # Только именованные устройства
+        devs.extend([device.name or "Unknown" for device in devices])  # Устройства с именем или "Unknown"
     else:
         devs.append("No devices found")
     print("Найденные устройства:", devs)
@@ -81,15 +80,13 @@ class SensorBase(Entity):
             self.async_write_ha_state()  # Обновление состояния после сканирования
 
 
-class BLEDeviceSensor(SensorBase):
+class BLEDeviceSensor(SensorEntity):
     """Сенсор для отображения BLE-устройств."""
-
-    device_class = SensorDeviceClass.BATTERY
-    _attr_unit_of_measurement = PERCENTAGE
 
     def __init__(self, roller):
         """Инициализация сенсора."""
-        super().__init__(roller)
+        super().__init__()
+        self._roller = roller
         self._attr_unique_id = f"{self._roller.roller_id}_ble_devices"
         self._attr_name = f"{self._roller.name} BLE Devices"
         self._state = "No devices found"
@@ -100,3 +97,8 @@ class BLEDeviceSensor(SensorBase):
         global devs
         # Если список устройств пуст, возвращаем "No devices found"
         return ", ".join(devs) if devs else "No devices found"
+
+    @property
+    def icon(self):
+        """Иконка сенсора."""
+        return "mdi:bluetooth"
