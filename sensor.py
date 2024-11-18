@@ -39,18 +39,11 @@ async def get_device_services(device):
                 await client.connect()
             _LOGGER.info(f"Подключено к устройству {device.name} ({device.address})")
 
-            # Получаем сервисы
-            services = client.services
-            if services:
-                # Формируем строковое представление для каждого сервиса
-                services_list = [f"{service.uuid} ({service.handle}): {service.description}" for service in services]
-                _LOGGER.info(f"Сервисы устройства {device.name}: {services_list}")
-                return services_list
-            else:
-                _LOGGER.warning(f"Устройство {device.name} не предоставляет сервисы.")
-                return []
+            # Убираем вывод сервисов
+            _LOGGER.info(f"Устройство {device.name} подключено, но сервисы не отображаются.")
+            return []  # Возвращаем пустой список, не выводя сервисы
     except Exception as e:
-        _LOGGER.error(f"Не удалось получить сервисы для устройства {device.name}: {e}")
+        _LOGGER.error(f"Не удалось подключиться к устройству {device.name}: {e}")
         return []
 
 async def async_setup_entry(
@@ -103,7 +96,6 @@ class BLEDeviceSensor(SensorEntity):
                     device_info = {
                         "name": device.name,
                         "address": device.address,
-                        "services": services,
                     }
                 else:
                     self._state = "No services found"
@@ -130,29 +122,13 @@ class BLEDeviceSensor(SensorEntity):
     def device_state_attributes(self):
         """Возвращает атрибуты сенсора для отображения в интерфейсе Home Assistant."""
         if device_info:
-            # Разделяем длинные строки на части по 255 символов
-            services = device_info["services"]
-            services_parts = []
-            part = ""
-            for service in services:
-                if len(part) + len(service) + 2 <= 255:
-                    part += service + ", "
-                else:
-                    services_parts.append(part.strip(", "))
-                    part = service + ", "
-            if part:
-                services_parts.append(part.strip(", "))
-
             # Формируем атрибуты
             attributes = {
                 "address": device_info["address"],
                 "connected": self._connected,  # Информация о подключении
+                "device_name": device_info["name"],  # Имя устройства
             }
 
-            # Добавляем сервисы как отдельные атрибуты
-            for i, part in enumerate(services_parts, start=1):
-                attributes[f"services_part_{i}"] = part
-
-            _LOGGER.info(f"Сервисы устройства: {services_parts}")
+            _LOGGER.info(f"Информация о устройстве: {attributes}")
             return attributes
         return {}
