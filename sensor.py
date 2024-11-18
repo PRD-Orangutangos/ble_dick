@@ -16,11 +16,13 @@ async def discover_devices():
         devices = await BleakScanner.discover(timeout=5.0)
         devs.clear()
         if devices:
-            devs.extend([device.name or f"Unknown ({device.address})" for device in devices])
+            # Ограничиваем количество устройств для отображения
+            devs.extend([device.name or f"Unknown ({device.address})" for device in devices[:3]])  # Показываем не более 3 устройств
         else:
             devs.append("No devices found")
     except Exception as e:
         devs.append(f"Error: {e}")
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -67,7 +69,13 @@ class BLEDeviceSensor(SensorEntity):
     def state(self):
         """Возвращает текущее состояние сенсора (список BLE устройств)."""
         global devs
-        return ", ".join(devs) if devs else "No devices found"
+        if not devs:
+            return "No devices found"
+        # Ограничиваем длину строки до 255 символов
+        devices_state = ", ".join(devs)
+        if len(devices_state) > 255:
+            devices_state = devices_state[:252] + "..."  # Обрезаем строку, если она слишком длинная
+        return devices_state
 
     @property
     def icon(self):
