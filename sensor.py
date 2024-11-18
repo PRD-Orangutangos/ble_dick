@@ -1,35 +1,22 @@
 import asyncio
-import logging
-from bleak import BleakScanner
+import random
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import HubConfigEntry
 
-# Настройка логгера
-_LOGGER = logging.getLogger(__name__)
-
 DOMAIN = "ble_dick"
-devs = []  # Глобальный список для хранения найденных устройств
+devs = []  # Глобальный список для хранения найденных фруктов
 
 
 async def discover_devices():
-    """Функция для поиска всех доступных Bluetooth устройств."""
+    """Функция для генерации случайного списка фруктов."""
     global devs
-    _LOGGER.info("Поиск BLE-устройств...")  # Логируем начало сканирования
-    try:
-        devices = await BleakScanner.discover()
-        _LOGGER.info(f"Найдено {len(devices)} устройств.")  # Логируем количество найденных устройств
-        devs.clear()
-        if devices:
-            devs.extend([device.name or f"Unknown ({device.address})" for device in devices])
-        else:
-            devs.append("No devices found")
-        _LOGGER.info(f"Устройства: {devs}")  # Логируем найденные устройства
-    except Exception as e:
-        _LOGGER.error(f"Ошибка при сканировании BLE: {e}")  # Логируем ошибку
-        devs.append("Scan error")
+    fruits = ["Apple", "Banana", "Orange", "Grapes", "Pineapple", "Mango", "Peach", "Strawberry"]
+    devs.clear()
+    # Генерация случайного списка из 3 фруктов
+    devs.extend(random.sample(fruits, 3))
 
 
 async def async_setup_entry(
@@ -41,7 +28,7 @@ async def async_setup_entry(
     hub = config_entry.runtime_data
     new_devices = []
 
-    # Добавление сенсора BLE-устройств
+    # Добавление сенсора случайных фруктов
     for roller in hub.rollers:
         new_devices.append(BLEDeviceSensor(roller))
 
@@ -82,31 +69,29 @@ class SensorBase(Entity):
     async def _periodic_update(self):
         """Периодическая задача для обновления состояния."""
         while True:
-            await asyncio.sleep(10)  # Сканируем BLE каждые 10 секунд
+            await asyncio.sleep(10)  # Сканируем фрукты каждые 10 секунд
             await discover_devices()
-            self.async_write_ha_state()  # Обновление состояния после сканирования
+            self.async_write_ha_state()  # Обновление состояния после "обнаружения" фруктов
 
 
 class BLEDeviceSensor(SensorEntity):
-    """Сенсор для отображения BLE-устройств."""
+    """Сенсор для отображения случайных фруктов."""
 
     def __init__(self, roller):
         """Инициализация сенсора."""
         super().__init__()
         self._roller = roller
         self._attr_unique_id = f"{self._roller.roller_id}_ble_devices"
-        self._attr_name = f"{self._roller.name} BLE Devices"
-        self._state = "No devices found"
-        _LOGGER.debug(f"Создан сенсор для {self._roller.name}")  # Логируем создание сенсора
+        self._attr_name = f"{self._roller.name} Fruit Devices"
+        self._state = "No fruits found"
 
     @property
     def state(self):
         """Возвращает текущее состояние сенсора."""
         global devs
-        _LOGGER.debug(f"Текущее состояние сенсора: {', '.join(devs)}")  # Логируем состояние сенсора
-        return ", ".join(devs) if devs else "No devices found"
+        return ", ".join(devs) if devs else "No fruits found"
 
     @property
     def icon(self):
         """Иконка сенсора."""
-        return "mdi:bluetooth"
+        return "mdi:fruit-pineapple"
