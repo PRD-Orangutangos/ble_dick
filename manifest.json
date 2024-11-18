@@ -7,5 +7,5 @@
   "config_flow": true,
   "integration_type": "device",
   "iot_class": "local_push",
-  "icon": "/local/community/ble_dick/icon.png"
+  "icon": "mdi:bluetooth"
 }
