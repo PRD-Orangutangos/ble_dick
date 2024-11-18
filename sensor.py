@@ -66,6 +66,7 @@ class BLEDeviceSensor(SensorEntity):
     @property
     def device_state_attributes(self):
         """Возвращает атрибуты состояния устройства."""
+        # Возвращаем атрибуты как словарь
         return {
             "device_name": self._device_name,
             "device_address": self._device_address,
