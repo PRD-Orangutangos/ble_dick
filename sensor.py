@@ -44,11 +44,15 @@ class BLEDeviceSensor(SensorEntity):
                 self._connected = False  # Устройство ещё не подключено
                 self._device_name = device.name
                 self._device_address = device.address
+                # Логируем атрибуты перед обновлением состояния
+                _LOGGER.debug(f"Updating sensor state: {self._device_name}, {self._device_address}, connected: {self._connected}")
                 self.async_write_ha_state()  # Обновление состояния сенсора
 
             else:
                 self._state = "No device found"
                 self._connected = False  # Устройство не подключено
+                # Логируем, что устройство не найдено
+                _LOGGER.debug("No device found, resetting state.")
                 self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
@@ -67,12 +71,14 @@ class BLEDeviceSensor(SensorEntity):
     def device_state_attributes(self):
         """Возвращает атрибуты состояния устройства."""
         # Возвращаем атрибуты как словарь
-        return {
-            "device_name": self._device_name,
-            "device_address": self._device_address,
-            "connection_status": self._connected
-        }
-
+        if self._device_name and self._device_address:
+            _LOGGER.debug(f"Returning device attributes: {self._device_name}, {self._device_address}, {self._connected}")
+            return {
+                "device_name": self._device_name,
+                "device_address": self._device_address,
+                "connection_status": self._connected
+            }
+        return {}  # Если атрибуты не установлены, возвращаем пустой словарь
 
 async def discover_device_by_name(target_name):
     """Функция для поиска BLE устройства с нужным именем."""
