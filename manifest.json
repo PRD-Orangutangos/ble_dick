@@ -1,14 +1,12 @@
+
 {
-  "domain": "detailed_hello_world_push",
-  "name": "Detailed Hello World Push",
-  "codeowners": ["@sillyfrog"],
+  "domain": "example_light",
+  "name": "Example Light",
+  "codeowners": [],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://www.home-assistant.io/integrations/detailed_hello_world_push",
-  "homekit": {},
-  "iot_class": "local_push",
-  "requirements": [],
-  "ssdp": [],
-  "version": "0.1.0",
-  "zeroconf": []
+  "documentation": "https://github.com/home-assistant/example-custom-config/tree/master/custom_components/example_light/",
+  "iot_class": "local_polling",
+  "requirements": ["awesomelights==1.2.3"],
+  "version": "0.1.0"
 }
