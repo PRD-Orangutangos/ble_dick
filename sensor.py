@@ -20,12 +20,7 @@ async def discover_device_by_name(target_name):
         devices = await BleakScanner.discover(timeout=5.0)
         for device in devices:
             if device.name and target_name.lower() in device.name.lower():
-                # Подключаемся к устройству, чтобы получить его сервисы
-                device_info = {
-                    "name": device.name,
-                    "address": device.address,
-                    "services": await get_device_services(device),
-                }
+                # Сразу возвращаем устройство, не получая информацию о сервисах
                 return device
         # Если устройство не найдено
         device_info = None
@@ -96,14 +91,24 @@ class BLEDeviceSensor(SensorEntity):
         while True:
             await asyncio.sleep(10)  # Обновление состояния каждые 10 секунд
             device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
-            if device_info:
-                if not self._connected:
-                    self._state = f"Device found: {device_info['name']}"  # Устройство найдено
+            if device:
+                self._state = f"Device found: {device.name}"  # Устройство найдено
+                self._connected = False  # Устройство ещё не подключено
+                self.async_write_ha_state()  # Обновление состояния сенсора
+
+                # Теперь пытаемся подключиться к устройству и получить информацию о сервисах
+                services = await get_device_services(device)
+                if services:
+                    self._state = f"Device connected: {device.name}"  # Устройство подключено
+                    device_info = {
+                        "name": device.name,
+                        "address": device.address,
+                        "services": services,
+                    }
                 else:
-                    self._state = f"Device connected: {device_info['name']}"  # Устройство подключено
-                self._connected = True  # Устройство подключено
-                # Выводим информацию о сервисах в лог
-                _LOGGER.info(f"Сервисы устройства {device_info['name']}: {device_info['services']}")
+                    self._state = "No services found"
+                    self._connected = False  # Устройство не подключено
+                self.async_write_ha_state()  # Обновление состояния сенсора
             else:
                 self._state = "No device found"
                 self._connected = False  # Устройство не подключено
