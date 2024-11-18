@@ -66,26 +66,36 @@ class BLEDeviceSensor(SensorEntity):
         """Периодическая задача для обновления состояния."""
         while True:
             await asyncio.sleep(2)  # Обновление состояния каждые 10 секунд
-            device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
-            if device:
-                self._state = f"Device found: {device.name}"  # Устройство найдено
-                self._connected = False  # Устройство ещё не подключено
-                self.async_write_ha_state()  # Обновление состояния сенсора
+            try:
+                devices = await BleakScanner.discover(timeout=2.0)  # Сканируем устройства
+                for device in devices:
+                    if device.name and self.target_device_name.lower() in device.name.lower():
+                        global device_info
+                        device_info = {
+                            "name": device.name,
+                            "address": device.address,
+                            "connected": self._connected,
+                        }
+                        self.async_write_ha_state()
+                print(f"Устройство с именем '{self.target_device_name}' не найдено.")
+            except Exception as e:
+                print(f"Ошибка при сканировании устройства: {e}")
 
-                # Формируем информацию о найденном устройстве
-                global device_info
-                device_info = {
-                    "name": device.name,
-                    "address": device.address,
-                    "connected": self._connected,
-                }
+            # device = await discover_device_by_name(self.target_device_name)  # Поиск устройства по имени
+            # if device:
+            #     self._state = f"Device found: {device.name}"  # Устройство найдено
+            #     self._connected = False  # Устройство ещё не подключено
+            #     self.async_write_ha_state()  # Обновление состояния сенсора
 
-                # Обновляем состояние сенсора
-                self.async_write_ha_state()
-            else:
-                self._state = "No device found"
-                self._connected = False  # Устройство не подключено
-                self.async_write_ha_state()  # Обновление состояния сенсора
+            #     # Формируем информацию о найденном устройстве
+               
+
+            #     # Обновляем состояние сенсора
+            #     self.async_write_ha_state()
+            # else:
+            #     self._state = "No device found"
+            #     self._connected = False  # Устройство не подключено
+            #     self.async_write_ha_state()  # Обновление состояния сенсора
 
     @property
     def state(self):
