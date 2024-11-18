@@ -14,9 +14,8 @@ async def discover_devices():
     """Функция для генерации случайного списка фруктов."""
     global devs
     fruits = ["Apple", "Banana", "Orange", "Grapes", "Pineapple", "Mango", "Peach", "Strawberry"]
-    devs.clear()
     # Генерация случайного списка из 3 фруктов
-    devs.extend(random.sample(fruits, 3))
+    devs = random.sample(fruits, 3)  # Обновляем devs новым списком
 
 
 async def async_setup_entry(
