@@ -1,15 +1,29 @@
+from bleak import BleakClient
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
-from bleak import BleakClient, discover  # Используем BleakClient и discover для поиска устройств
+from . import BLEDeviceSensor  # Импортируем BLEDeviceSensor
 
 _LOGGER = logging.getLogger(__name__)
+
+# Константы для компонента
 DOMAIN = "ble_dick"
 RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
 
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Настройка платформы Switch."""
+    # Добавляем один виртуальный переключатель
+    async_add_entities([ExampleSwitch(hass)])
+
+
 class ExampleSwitch(SwitchEntity):
-    """Пример кастомного переключателя с поиском устройства и подключением."""
+    """Пример кастомного переключателя."""
 
     def __init__(self, hass: HomeAssistant):
         """Инициализация переключателя."""
@@ -17,77 +31,60 @@ class ExampleSwitch(SwitchEntity):
         self._attr_name = "Example Switch"  # Имя переключателя
         self._hass = hass  # Сохраняем ссылку на Home Assistant
         self._client = None  # BLE клиент
-        self._device_address = ""  # Адрес устройства
-        self.target_device_name = "QHM-12"  # Имя искомого устройства
+        self._device_address = "00:00:00:00:00:00"  # Адрес устройства, заменить на реальный
         self._connected = False  # Флаг подключения
-        self._device_name = ""
 
     @property
     def is_on(self) -> bool:
         """Возвращает текущее состояние переключателя."""
         return self._attr_is_on
 
+    @property
+    def available(self) -> bool:
+        """Возвращает доступность переключателя (кнопки)."""
+        return self._connected  # Кнопка доступна только если устройство подключено
+
     async def async_turn_on(self, **kwargs):
         """Включение переключателя и запуск уведомлений."""
-        if self._connected:
-            self._attr_is_on = True
-            # Запуск уведомлений для сервиса RSC_MEASUREMENT_UUID
-            if self._client:
-                await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
-            self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
-        else:
-            _LOGGER.warning("Device is not connected. Cannot turn on the switch.")
+        if not self._connected:
+            _LOGGER.warning("Cannot turn on, BLE device is not connected.")
+            return
+
+        self._attr_is_on = True
+        # Запуск уведомлений для сервиса RSC_MEASUREMENT_UUID
+        if self._client:
+            await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
+        self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
 
     async def async_turn_off(self, **kwargs):
         """Выключение переключателя и остановка уведомлений."""
-        if self._connected:
-            self._attr_is_on = False
-            # Остановка уведомлений для сервиса RSC_MEASUREMENT_UUID
-            if self._client:
-                await self._client.stop_notify(RSC_MEASUREMENT_UUID)
-            self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
-        else:
-            _LOGGER.warning("Device is not connected. Cannot turn off the switch.")
+        if not self._connected:
+            _LOGGER.warning("Cannot turn off, BLE device is not connected.")
+            return
+
+        self._attr_is_on = False
+        # Остановка уведомлений для сервиса RSC_MEASUREMENT_UUID
+        if self._client:
+            await self._client.stop_notify(RSC_MEASUREMENT_UUID)
+        self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
 
     async def async_added_to_hass(self):
         """Действия при добавлении переключателя в Home Assistant."""
-        # Запускаем поиск устройства и подключаемся
-        await self._connect_to_device()
+        # Получаем BLE клиент из другого сенсора
+        sensor = next(entity for entity in self._hass.data[DOMAIN].values() if isinstance(entity, BLEDeviceSensor))
+        if sensor and sensor._client and sensor._client.is_connected:
+            self._client = sensor._client  # Используем уже существующий клиент
+            self._connected = True  # Устанавливаем флаг подключения
+            _LOGGER.debug(f"Using existing client for device: {sensor._device_name}")
+        else:
+            _LOGGER.warning("No connected client found. Make sure the BLE device is connected.")
+            self._connected = False  # Устройство не подключено
+
+        self.async_write_ha_state()  # Обновляем состояние кнопки
 
     async def async_will_remove_from_hass(self):
         """Действия при удалении переключателя из Home Assistant."""
-        if self._client and self._connected:
+        if self._client and self._client.is_connected:
             await self._client.disconnect()  # Отключаем клиента
-
-    async def _connect_to_device(self):
-        """Метод для поиска и подключения к BLE устройству."""
-        devices = await discover()  # Используем bleak для поиска устройств
-        target_device = None
-
-        # Ищем устройство по имени
-        for device in devices:
-            if device.name == self.target_device_name:
-                target_device = device
-                self._device_address = device.address
-                self._device_name = device.name
-                break
-
-        if target_device:
-            _LOGGER.debug(f"Found device: {self._device_name}, {self._device_address}")
-            try:
-                # Подключаемся к найденному устройству
-                self._client = BleakClient(self._device_address)
-                await self._client.connect()
-                self._connected = True
-                _LOGGER.info(f"Connected to device: {self._device_name}")
-                self._state = f"Connected to {self._device_name}"
-            except Exception as e:
-                _LOGGER.error(f"Failed to connect to device: {e}")
-                self._state = "Failed to connect"
-                self._connected = False
-        else:
-            self._state = "No device found"
-            self._connected = False  # Устройство не подключено
-            _LOGGER.debug("No device found.")
-        
-        self.async_write_ha_state()  # Обновление состояния переключателя
+            self._connected = False  # Отключаем флаг подключения
+            _LOGGER.debug("Disconnected from BLE device.")
