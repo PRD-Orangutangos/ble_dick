@@ -2,7 +2,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
-from bleak import BleakClient, discover, BleakError  # Используем BleakClient и discover для поиска устройств
+from bleak import BleakClient, discover  # Используем BleakClient и discover для поиска устройств
 import asyncio
 
 _LOGGER = logging.getLogger(__name__)
@@ -14,8 +14,7 @@ from . import HubConfigEntry
 async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_add_entities: AddEntitiesCallback):
     """Настройка компонента через конфигурацию Home Assistant."""
     switch = ExampleSwitch(hass)
-    await switch.async_setup()  # Убедимся, что устройство подключено перед добавлением
-    async_add_entities([switch])
+    async_add_entities([switch])  # Добавляем сущность в Home Assistant
 
 class ExampleSwitch(SwitchEntity):
     """Пример кастомного переключателя с поиском устройства и подключением."""
@@ -46,7 +45,6 @@ class ExampleSwitch(SwitchEntity):
         """Включение переключателя и запуск уведомлений."""
         if self._connected:
             self._attr_is_on = True
-            # Запуск уведомлений для сервиса RSC_MEASUREMENT_UUID
             if self._client:
                 await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
             self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
@@ -57,7 +55,6 @@ class ExampleSwitch(SwitchEntity):
         """Выключение переключателя и остановка уведомлений."""
         if self._connected:
             self._attr_is_on = False
-            # Остановка уведомлений для сервиса RSC_MEASUREMENT_UUID
             if self._client:
                 await self._client.stop_notify(RSC_MEASUREMENT_UUID)
             self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
@@ -66,16 +63,8 @@ class ExampleSwitch(SwitchEntity):
 
     async def async_added_to_hass(self):
         """Действия при добавлении переключателя в Home Assistant."""
-        # Запускаем поиск устройства и подключаемся
-        await self._connect_to_device()
-        if self._connected:
-            self.async_write_ha_state()  # Обновляем состояние только после успешного подключения
-        else:
-            _LOGGER.warning("Device not connected after setup.")
-
-    async def async_setup(self):
-        """Метод для подготовки и подключения устройства до активации."""
-        await self._connect_to_device()
+        await self._connect_to_device()  # Попытка подключения к устройству
+        self.async_write_ha_state()  # Обновляем состояние после инициализации
 
     async def async_will_remove_from_hass(self):
         """Действия при удалении переключателя из Home Assistant."""
@@ -89,7 +78,6 @@ class ExampleSwitch(SwitchEntity):
         devices = await discover()  # Используем bleak для поиска устройств
         target_device = None
 
-        # Ищем устройство по имени
         for device in devices:
             if device.name == self.target_device_name:
                 target_device = device
@@ -100,34 +88,14 @@ class ExampleSwitch(SwitchEntity):
         if target_device:
             _LOGGER.debug(f"Found device: {self._device_name}, {self._device_address}")
             try:
-                # Подключаемся к найденному устройству
                 self._client = BleakClient(self._device_address)
                 await self._client.connect()
                 self._connected = True
                 _LOGGER.info(f"Connected to device: {self._device_name}")
-                self._state = f"Connected to {self._device_name}"
-                # Запускаем задачу отслеживания состояния подключения
                 self._reconnect_task = asyncio.create_task(self._monitor_connection())
             except Exception as e:
                 _LOGGER.error(f"Failed to connect to device: {e}")
-                self._state = "Failed to connect"
                 self._connected = False
         else:
-            self._state = "No device found"
-            self._connected = False  # Устройство не подключено
             _LOGGER.debug("No device found.")
-        
-        self.async_write_ha_state()  # Обновление состояния переключателя
-
-    async def _monitor_connection(self):
-        """Метод для мониторинга состояния подключения к устройству и переподключения при отключении."""
-        while True:
-            if self._client and not self._client.is_connected:
-                _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
-                self._connected = False
-                self.async_write_ha_state()  # Обновление состояния переключателя
-                await self._client.connect()
-                self._connected = True
-                _LOGGER.info(f"Reconnected to device: {self._device_name}")
-                self.async_write_ha_state()  # Обновление состояния переключателя
-            await asyncio.sleep(5)  # Пауза перед следующим циклом проверки
+            self._connected = False
