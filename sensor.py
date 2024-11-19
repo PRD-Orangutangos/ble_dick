@@ -66,9 +66,9 @@ class BLEDeviceSensor(SensorEntity):
                     await self._client.connect()
                     self._connected = True  # Устройство подключено
                     self._state = f"Connected to {self._device_name}"
-                    services = await self._client.get_services()
-                    self._device_services = [service.uuid for service in services]
-                    _LOGGER.info(f"Connected to device: {self._device_name}")
+                    # services = await self._client.get_services()
+                    # self._device_services = [service.uuid for service in services]
+                    # _LOGGER.info(f"Connected to device: {self._device_name}")
                 except Exception as e:
                     _LOGGER.error(f"Failed to connect to device: {e}")
                     self._state = "Failed to connect"
@@ -102,7 +102,7 @@ class BLEDeviceSensor(SensorEntity):
                 "device_name": self._device_name,
                 "device_address": self._device_address,
                 "connection_status": self._connected,
-                "services": self._device_services,
+                # "services": self._device_services,
             }
         # Если устройство не подключено или данные не обновлены, возвращаем пустой словарь
         _LOGGER.debug(f"Returning empty attributes, connected: {self._connected}")

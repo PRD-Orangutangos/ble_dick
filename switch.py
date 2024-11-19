@@ -1,9 +1,13 @@
+from bleak import BleakClient
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
+import logging
+from . import BLEDeviceSensor  # Импортируем BLEDeviceSensor
+_LOGGER = logging.getLogger(__name__)
 # Константы для компонента
 DOMAIN = "ble_dick"
+RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
 
 
 async def async_setup_entry(
@@ -13,16 +17,19 @@ async def async_setup_entry(
 ) -> None:
     """Настройка платформы Switch."""
     # Добавляем один виртуальный переключатель
-    async_add_entities([ExampleSwitch()])
+    async_add_entities([ExampleSwitch(hass)])
 
 
 class ExampleSwitch(SwitchEntity):
     """Пример кастомного переключателя."""
 
-    def __init__(self):
+    def __init__(self, hass: HomeAssistant):
         """Инициализация переключателя."""
         self._attr_is_on = False  # Текущее состояние (выключен)
         self._attr_name = "Example Switch"  # Имя переключателя
+        self._hass = hass  # Сохраняем ссылку на Home Assistant
+        self._client = None  # BLE клиент
+        self._device_address = "00:00:00:00:00:00"  # Адрес устройства, заменить на реальный
 
     @property
     def is_on(self) -> bool:
@@ -30,11 +37,33 @@ class ExampleSwitch(SwitchEntity):
         return self._attr_is_on
 
     async def async_turn_on(self, **kwargs):
-        """Включение переключателя."""
+        """Включение переключателя и запуск уведомлений."""
         self._attr_is_on = True
+        # Запуск уведомлений для сервиса RSC_MEASUREMENT_UUID
+        if self._client:
+            await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
         self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
 
     async def async_turn_off(self, **kwargs):
-        """Выключение переключателя."""
+        """Выключение переключателя и остановка уведомлений."""
         self._attr_is_on = False
-        self.async_write_ha_state()
+        # Остановка уведомлений для сервиса RSC_MEASUREMENT_UUID
+        if self._client:
+            await self._client.stop_notify(RSC_MEASUREMENT_UUID)
+        self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
+
+    async def async_added_to_hass(self):
+        """Действия при добавлении переключателя в Home Assistant."""
+        # Получаем BLE клиент из другого сенсора
+        sensor = next(entity for entity in self._hass.data[DOMAIN].values() if isinstance(entity, BLEDeviceSensor))
+        if sensor and sensor._client and sensor._client.is_connected:
+            self._client = sensor._client  # Используем уже существующий клиент
+            _LOGGER.debug(f"Using existing client for device: {sensor._device_name}")
+        else:
+            _LOGGER.warning("No connected client found. Make sure the BLE device is connected.")
+            return  # Если клиент не найден, выходим
+
+    async def async_will_remove_from_hass(self):
+        """Действия при удалении переключателя из Home Assistant."""
+        if self._client and self._client.is_connected:
+            await self._client.disconnect()  # Отключаем клиента
