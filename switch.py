@@ -10,9 +10,11 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "ble_dick"
 RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
 from . import HubConfigEntry
+
 async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_add_entities: AddEntitiesCallback):
     """Настройка компонента через конфигурацию Home Assistant."""
     switch = ExampleSwitch(hass)
+    await switch.async_setup()  # Убедимся, что устройство подключено перед добавлением
     async_add_entities([switch])
 
 class ExampleSwitch(SwitchEntity):
@@ -65,6 +67,14 @@ class ExampleSwitch(SwitchEntity):
     async def async_added_to_hass(self):
         """Действия при добавлении переключателя в Home Assistant."""
         # Запускаем поиск устройства и подключаемся
+        await self._connect_to_device()
+        if self._connected:
+            self.async_write_ha_state()  # Обновляем состояние только после успешного подключения
+        else:
+            _LOGGER.warning("Device not connected after setup.")
+
+    async def async_setup(self):
+        """Метод для подготовки и подключения устройства до активации."""
         await self._connect_to_device()
 
     async def async_will_remove_from_hass(self):
