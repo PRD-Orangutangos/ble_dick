@@ -11,12 +11,10 @@ DOMAIN = "ble_dick"
 RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
 from . import HubConfigEntry
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_add_entities: AddEntitiesCallback):
     """Настройка компонента через конфигурацию Home Assistant."""
     switch = ExampleSwitch(hass)
     async_add_entities([switch])  # Добавляем сущность в Home Assistant
-
 
 class ExampleSwitch(SwitchEntity):
     """Пример кастомного переключателя с подключением к BLE устройству."""
@@ -65,13 +63,8 @@ class ExampleSwitch(SwitchEntity):
 
     async def async_added_to_hass(self):
         """Действия при добавлении переключателя."""
-        try:
-            await self._connect_to_device()
-            self.async_write_ha_state()
-        except Exception as e:
-            _LOGGER.error(f"Failed to connect to device during setup: {e}")
-            self._connected = False
-            self.async_write_ha_state()
+        await self._connect_to_device()
+        self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self):
         """Действия при удалении переключателя."""
@@ -82,7 +75,7 @@ class ExampleSwitch(SwitchEntity):
 
     async def _connect_to_device(self):
         """Подключение к устройству BLE."""
-        devices = await BleakScanner.discover(timeout=30)  # Увеличим время на поиск устройства
+        devices = await BleakScanner.discover(timeout=10)  # Установлен таймаут сканирования 10 секунд
         target_device = None
 
         for device in devices:
@@ -99,8 +92,6 @@ class ExampleSwitch(SwitchEntity):
                 await self._client.connect()
                 self._connected = True
                 _LOGGER.info(f"Connected to device: {self._device_name}")
-                if self._reconnect_task:
-                    self._reconnect_task.cancel()  # Если была задача на переподключение, отменяем
                 self._reconnect_task = asyncio.create_task(self._monitor_connection())
             except Exception as e:
                 _LOGGER.error(f"Failed to connect to device: {e}")
@@ -112,15 +103,15 @@ class ExampleSwitch(SwitchEntity):
     async def _monitor_connection(self):
         """Мониторинг состояния подключения и переподключение при необходимости."""
         while True:
-            try:
-                if self._client and not await self._client.is_connected():
-                    _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
-                    self._connected = False
-                    self.async_write_ha_state()
-                    await self._connect_to_device()  # Повторное подключение
-                else:
-                    _LOGGER.debug(f"Device {self._device_name} is connected.")
-            except Exception as e:
-                _LOGGER.error(f"Connection check failed: {e}")
+            if self._client and not self._client.is_connected:
+                _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
                 self._connected = False
-            await asyncio.sleep(3)  # Интервал проверки состояния подключения
+                self.async_write_ha_state()
+                try:
+                    await self._client.connect()
+                    self._connected = True
+                    _LOGGER.info(f"Reconnected to device: {self._device_name}")
+                except Exception as e:
+                    _LOGGER.error(f"Reconnection failed: {e}")
+                    _LOGGER.debug("Retrying connection in 5 seconds...")
+            await asyncio.sleep(3)
