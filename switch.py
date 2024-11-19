@@ -43,14 +43,10 @@ class ExampleSwitch(SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Включение переключателя."""
-        if self._connected and self._client:
-            try:
-                self._attr_is_on = True
+        if self._connected:
+            self._attr_is_on = True
+            if self._client:
                 await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
-                _LOGGER.info("Notification started successfully.")
-            except Exception as e:
-                _LOGGER.error(f"Failed to start notification: {e}")
-                self._connected = False  # Сбрасываем состояние подключения, если что-то пошло не так
             self.async_write_ha_state()
         else:
             _LOGGER.warning("Device is not connected. Cannot turn on the switch.")
@@ -104,37 +100,18 @@ class ExampleSwitch(SwitchEntity):
             _LOGGER.debug("No device found.")
             self._connected = False
 
-    # async def _monitor_connection(self):
-    #     """Мониторинг состояния подключения и переподключение при необходимости."""
-    #     while True:
-    #         if self._client and not self._client.is_connected:  # Убираем вызов как метода
-    #             _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
-    #             self._connected = False
-    #             self.async_write_ha_state()
-    #             try:
-    #                 await self._client.connect()
-    #                 self._connected = True
-    #                 _LOGGER.info(f"Reconnected to device: {self._device_name}")
-    #             except Exception as e:
-    #                 _LOGGER.error(f"Reconnection failed: {e}")
-    #                 _LOGGER.debug("Retrying connection in 5 seconds...")
-    #         await asyncio.sleep(1)
     async def _monitor_connection(self):
         """Мониторинг состояния подключения и переподключение при необходимости."""
         while True:
-            try:
-                if self._client and not await self._client.is_connected:
-                    _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
-                    self._connected = False
-                    self.async_write_ha_state()  # Обновляем статус кнопки
+            if self._client and not self._client.is_connected:  # Убираем вызов как метода
+                _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
+                self._connected = False
+                self.async_write_ha_state()
+                try:
                     await self._client.connect()
                     self._connected = True
                     _LOGGER.info(f"Reconnected to device: {self._device_name}")
-                    self.async_write_ha_state()  # Обновляем статус кнопки
-                elif not self._client:  # Если клиент отсутствует, инициируем новый
-                    _LOGGER.debug("Client is not initialized. Attempting to create and connect...")
-                    await self._connect_to_device()
-            except Exception as e:
-                _LOGGER.error(f"Reconnection failed: {e}")
-                self._connected = False
-            await asyncio.sleep(1)  # Проверяем каждую секунду
+                except Exception as e:
+                    _LOGGER.error(f"Reconnection failed: {e}")
+                    _LOGGER.debug("Retrying connection in 5 seconds...")
+            await asyncio.sleep(1)
