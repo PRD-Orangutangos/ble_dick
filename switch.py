@@ -2,7 +2,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
-from bleak import BleakClient, BleakScanner  # Обновляем импорт
+from bleak import BleakClient, BleakScanner  # обновленный импорт
 import asyncio
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_ad
     async_add_entities([switch])  # Добавляем сущность в Home Assistant
 
 class ExampleSwitch(SwitchEntity):
-    """Пример кастомного переключателя с поиском устройства и подключением."""
+    """Пример кастомного переключателя с подключением к BLE устройству."""
 
     def __init__(self, hass: HomeAssistant):
         """Инициализация переключателя."""
@@ -75,7 +75,7 @@ class ExampleSwitch(SwitchEntity):
 
     async def _connect_to_device(self):
         """Подключение к устройству BLE."""
-        devices = await BleakScanner.discover()  # Используем актуальный метод
+        devices = await BleakScanner.discover(timeout=10)  # Установлен таймаут сканирования 10 секунд
         target_device = None
 
         for device in devices:
@@ -103,7 +103,7 @@ class ExampleSwitch(SwitchEntity):
     async def _monitor_connection(self):
         """Мониторинг состояния подключения и переподключение при необходимости."""
         while True:
-            if self._client and not self._client.is_connected:  # Убираем вызов как метода
+            if self._client and not self._client.is_connected:
                 _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
                 self._connected = False
                 self.async_write_ha_state()
