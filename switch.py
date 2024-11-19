@@ -9,8 +9,8 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "ble_dick"
 RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
-from . import HubConfigEntry
-async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_add_entities: AddEntitiesCallback):
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
     """Настройка компонента через конфигурацию Home Assistant."""
     switch = ExampleSwitch(hass)
     async_add_entities([switch])
@@ -21,7 +21,7 @@ class ExampleSwitch(SwitchEntity):
     def __init__(self, hass: HomeAssistant):
         """Инициализация переключателя."""
         self._attr_is_on = False  # Текущее состояние (выключен)
-        self._attr_name = "!!! Dick button !!!"  # Имя переключателя
+        self._attr_name = "Example Switch"  # Имя переключателя
         self._hass = hass  # Сохраняем ссылку на Home Assistant
         self._client = None  # BLE клиент
         self._device_address = ""  # Адрес устройства
