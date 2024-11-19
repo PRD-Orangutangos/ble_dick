@@ -5,11 +5,11 @@ import logging
 from bleak import BleakClient, discover  # Используем BleakClient и discover для поиска устройств
 
 _LOGGER = logging.getLogger(__name__)
-
+from . import HubConfigEntry
 DOMAIN = "ble_dick"
 RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_add_entities: AddEntitiesCallback):
     """Настройка компонента через конфигурацию Home Assistant."""
     switch = ExampleSwitch(hass)
     async_add_entities([switch])
