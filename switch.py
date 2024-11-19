@@ -11,10 +11,12 @@ DOMAIN = "ble_dick"
 RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
 from . import HubConfigEntry
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_add_entities: AddEntitiesCallback):
     """Настройка компонента через конфигурацию Home Assistant."""
     switch = ExampleSwitch(hass)
     async_add_entities([switch])  # Добавляем сущность в Home Assistant
+
 
 class ExampleSwitch(SwitchEntity):
     """Пример кастомного переключателя с подключением к BLE устройству."""
@@ -92,6 +94,8 @@ class ExampleSwitch(SwitchEntity):
                 await self._client.connect()
                 self._connected = True
                 _LOGGER.info(f"Connected to device: {self._device_name}")
+                if self._reconnect_task:
+                    self._reconnect_task.cancel()  # Если уже была задача, отменяем
                 self._reconnect_task = asyncio.create_task(self._monitor_connection())
             except Exception as e:
                 _LOGGER.error(f"Failed to connect to device: {e}")
@@ -103,15 +107,15 @@ class ExampleSwitch(SwitchEntity):
     async def _monitor_connection(self):
         """Мониторинг состояния подключения и переподключение при необходимости."""
         while True:
-            if self._client and not self._client.is_connected:
-                _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
+            try:
+                if self._client and not await self._client.is_connected():
+                    _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
+                    self._connected = False
+                    self.async_write_ha_state()
+                    await self._connect_to_device()  # Повторное подключение
+                else:
+                    _LOGGER.debug(f"Device {self._device_name} is connected.")
+            except Exception as e:
+                _LOGGER.error(f"Connection check failed: {e}")
                 self._connected = False
-                self.async_write_ha_state()
-                try:
-                    await self._client.connect()
-                    self._connected = True
-                    _LOGGER.info(f"Reconnected to device: {self._device_name}")
-                except Exception as e:
-                    _LOGGER.error(f"Reconnection failed: {e}")
-                    _LOGGER.debug("Retrying connection in 5 seconds...")
-            await asyncio.sleep(1)
+            await asyncio.sleep(5)  # Интервал проверки состояния подключения
