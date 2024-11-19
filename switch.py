@@ -97,7 +97,7 @@ class ExampleSwitch(SwitchEntity):
                 _LOGGER.error(f"Failed to connect to device: {e}")
                 self._connected = False
         else:
-            _LOGGER.debug("No device found.")
+            _LOGGER.debug("No device found..")
             self._connected = False
 
     async def _monitor_connection(self):
