@@ -85,10 +85,16 @@ class ExampleSwitch(SwitchEntity):
 
     async def _connect_to_device(self):
         """Подключение к устройству BLE."""
+        _LOGGER.debug("Starting BLE scan...")
         devices = await BleakScanner.discover(timeout=10)  # Установлен таймаут сканирования 10 секунд
-        target_device = None
+        if not devices:
+            _LOGGER.error("No devices found during BLE scan.")
+            self._connected = False
+            return
 
+        target_device = None
         for device in devices:
+            _LOGGER.debug(f"Found device: {device.name} ({device.address})")
             if device.name == self.target_device_name:
                 target_device = device
                 self._device_address = device.address
@@ -96,9 +102,10 @@ class ExampleSwitch(SwitchEntity):
                 break
 
         if target_device:
-            _LOGGER.debug(f"Found device: {self._device_name}, {self._device_address}")
+            _LOGGER.debug(f"Found target device: {self._device_name}, {self._device_address}")
             try:
                 self._client = BleakClient(self._device_address)
+                _LOGGER.debug(f"Attempting to connect to {self._device_name}...")
                 await self._client.connect()
                 self._connected = True
                 _LOGGER.info(f"Connected to device: {self._device_name}")
@@ -107,7 +114,7 @@ class ExampleSwitch(SwitchEntity):
                 _LOGGER.error(f"Failed to connect to device: {e}")
                 self._connected = False
         else:
-            _LOGGER.debug("No device found..")
+            _LOGGER.error(f"Target device {self.target_device_name} not found.")
             self._connected = False
 
     async def _monitor_connection(self):
