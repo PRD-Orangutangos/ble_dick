@@ -21,15 +21,15 @@ class ExampleSwitch(SwitchEntity):
 
     def __init__(self, hass: HomeAssistant):
         """Инициализация переключателя."""
-        self._attr_is_on = False  # Текущее состояние (выключен)
-        self._attr_name = "Gomik button"  # Имя переключателя
-        self._hass = hass  # Сохраняем ссылку на Home Assistant
-        self._client = None  # BLE клиент
-        self._device_address = ""  # Адрес устройства
-        self.target_device_name = "QHM-12"  # Имя искомого устройства
-        self._connected = False  # Флаг подключения
+        self._attr_is_on = False
+        self._attr_name = "Gomik button"
+        self._hass = hass
+        self._client = None
+        self._device_address = ""
+        self.target_device_name = "QHM-12"
+        self._connected = False
         self._device_name = ""
-        self._reconnect_task = None  # Задача для переподключения
+        self._reconnect_task = None
 
     @property
     def is_on(self) -> bool:
@@ -38,44 +38,44 @@ class ExampleSwitch(SwitchEntity):
 
     @property
     def available(self) -> bool:
-        """Возвращает доступность переключателя (кнопки)."""
-        return self._connected  # Кнопка доступна только если устройство подключено
+        """Возвращает доступность переключателя."""
+        return self._connected
 
     async def async_turn_on(self, **kwargs):
-        """Включение переключателя и запуск уведомлений."""
+        """Включение переключателя."""
         if self._connected:
             self._attr_is_on = True
             if self._client:
                 await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
-            self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
+            self.async_write_ha_state()
         else:
             _LOGGER.warning("Device is not connected. Cannot turn on the switch.")
 
     async def async_turn_off(self, **kwargs):
-        """Выключение переключателя и остановка уведомлений."""
+        """Выключение переключателя."""
         if self._connected:
             self._attr_is_on = False
             if self._client:
                 await self._client.stop_notify(RSC_MEASUREMENT_UUID)
-            self.async_write_ha_state()  # Уведомляем Home Assistant об изменении состояния
+            self.async_write_ha_state()
         else:
             _LOGGER.warning("Device is not connected. Cannot turn off the switch.")
 
     async def async_added_to_hass(self):
-        """Действия при добавлении переключателя в Home Assistant."""
-        await self._connect_to_device()  # Попытка подключения к устройству
-        self.async_write_ha_state()  # Обновляем состояние после инициализации
+        """Действия при добавлении переключателя."""
+        await self._connect_to_device()
+        self.async_write_ha_state()
 
     async def async_will_remove_from_hass(self):
-        """Действия при удалении переключателя из Home Assistant."""
+        """Действия при удалении переключателя."""
         if self._client and self._connected:
-            await self._client.disconnect()  # Отключаем клиента
+            await self._client.disconnect()
         if self._reconnect_task:
-            self._reconnect_task.cancel()  # Отменяем задачу переподключения, если она есть
+            self._reconnect_task.cancel()
 
     async def _connect_to_device(self):
-        """Метод для поиска и подключения к BLE устройству."""
-        devices = await discover()  # Используем bleak для поиска устройств
+        """Подключение к устройству BLE."""
+        devices = await discover()
         target_device = None
 
         for device in devices:
@@ -99,3 +99,18 @@ class ExampleSwitch(SwitchEntity):
         else:
             _LOGGER.debug("No device found.")
             self._connected = False
+
+    async def _monitor_connection(self):
+        """Мониторинг состояния подключения и переподключение при необходимости."""
+        while True:
+            if self._client and not await self._client.is_connected():
+                _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
+                self._connected = False
+                self.async_write_ha_state()
+                try:
+                    await self._client.connect()
+                    self._connected = True
+                    _LOGGER.info(f"Reconnected to device: {self._device_name}")
+                except Exception as e:
+                    _LOGGER.error(f"Reconnection failed: {e}")
+            await asyncio.sleep(5)
