@@ -2,7 +2,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 import logging
-from bleak import BleakClient, discover  # Используем BleakClient и discover для поиска устройств
+from bleak import BleakClient, BleakScanner  # Обновляем импорт
 import asyncio
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class ExampleSwitch(SwitchEntity):
 
     async def _connect_to_device(self):
         """Подключение к устройству BLE."""
-        devices = await discover()
+        devices = await BleakScanner.discover()  # Используем актуальный метод
         target_device = None
 
         for device in devices:
@@ -103,7 +103,7 @@ class ExampleSwitch(SwitchEntity):
     async def _monitor_connection(self):
         """Мониторинг состояния подключения и переподключение при необходимости."""
         while True:
-            if self._client and not await self._client.is_connected():
+            if self._client and not self._client.is_connected:  # Убираем вызов как метода
                 _LOGGER.warning(f"Device {self._device_name} disconnected, attempting to reconnect...")
                 self._connected = False
                 self.async_write_ha_state()
@@ -113,4 +113,5 @@ class ExampleSwitch(SwitchEntity):
                     _LOGGER.info(f"Reconnected to device: {self._device_name}")
                 except Exception as e:
                     _LOGGER.error(f"Reconnection failed: {e}")
+                    _LOGGER.debug("Retrying connection in 5 seconds...")
             await asyncio.sleep(5)
