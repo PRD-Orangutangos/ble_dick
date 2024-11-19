@@ -114,4 +114,4 @@ class ExampleSwitch(SwitchEntity):
                 except Exception as e:
                     _LOGGER.error(f"Reconnection failed: {e}")
                     _LOGGER.debug("Retrying connection in 5 seconds...")
-            await asyncio.sleep(5)
+            await asyncio.sleep(1)
