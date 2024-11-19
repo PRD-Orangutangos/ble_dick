@@ -45,8 +45,14 @@ class ExampleSwitch(SwitchEntity):
         """Включение переключателя."""
         if self._connected:
             self._attr_is_on = True
-            if self._client:
-                await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
+            if self._client and self._client.is_connected:
+                try:
+                    await self._client.start_notify(RSC_MEASUREMENT_UUID, lambda sender, data: None)
+                    _LOGGER.info("Started notification successfully.")
+                except Exception as e:
+                    _LOGGER.error(f"Failed to start notification: {e}")
+            else:
+                _LOGGER.warning("Device is connected, but _client is not in connected state.")
             self.async_write_ha_state()
         else:
             _LOGGER.warning("Device is not connected. Cannot turn on the switch.")
@@ -55,8 +61,12 @@ class ExampleSwitch(SwitchEntity):
         """Выключение переключателя."""
         if self._connected:
             self._attr_is_on = False
-            if self._client:
-                await self._client.stop_notify(RSC_MEASUREMENT_UUID)
+            if self._client and self._client.is_connected:
+                try:
+                    await self._client.stop_notify(RSC_MEASUREMENT_UUID)
+                    _LOGGER.info("Stopped notification successfully.")
+                except Exception as e:
+                    _LOGGER.error(f"Failed to stop notification: {e}")
             self.async_write_ha_state()
         else:
             _LOGGER.warning("Device is not connected. Cannot turn off the switch.")
