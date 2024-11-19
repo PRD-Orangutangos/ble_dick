@@ -9,8 +9,8 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "ble_dick"
 RSC_MEASUREMENT_UUID = "00002a53-0000-1000-8000-00805f9b34fb"  # UUID RSC Measurement
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+from . import HubConfigEntry
+async def async_setup_entry(hass: HomeAssistant, entry: HubConfigEntry, async_add_entities: AddEntitiesCallback):
     """Настройка компонента через конфигурацию Home Assistant."""
     switch = ExampleSwitch(hass)
     async_add_entities([switch])
